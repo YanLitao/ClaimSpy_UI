@@ -1,0 +1,18 @@
+Using TDB: /Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB
+T = 298.0 K, P = 101325.0 Pa
+Host ratio fixed: Al:Mg = 1:1 (X(AL)=X(MG) before insertion)
+mu_Li (metal) = -8677.761 J/mol
+
+Dilute-limit (x_Li → 0) OCV estimate:
+  x_Li=1e-06, E = 0.6420 V, phases: 
+
+Grid results (x_Li, E [V], dominant phases):
+  x=0.000, E=0.6420 V, phases=
+  x=0.020, E=0.5084 V, phases=
+  x=0.040, E=0.5053 V, phases=
+  x=0.060, E=0.5019 V, phases=
+  x=0.080, E=0.4982 V, phases=
+  x=0.100, E=0.4940 V, phases=
+  x=0.120, E=0.4894 V, phases=
+  x=0.150, E=0.4816 V, phases=
+  x=0.200, E=0.4823 V, phases=

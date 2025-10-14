@@ -1,0 +1,102 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "batteries_0005",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -1,
+  "continuous_score": 0.08,
+  "confidence": 0.62,
+  "wall_clock_time": 217.30295705795288,
+  "explanation": [
+    {
+      "text": "LiPF6 electrolyte is extremely unstable in the presence of trace water, even at ppm levels, undergoing rapid hydrolysis to form HF (hydrofluoric acid) which attacks both graphite anodes and LCO cathodes.",
+      "evidence": [
+        "ev1",
+        "ev2",
+        "ev3"
+      ]
+    },
+    {
+      "text": "Commercial lithium-ion battery manufacturing requires stringent moisture control (<10 ppm water) specifically to prevent the degradation caused by LiPF6-water reactions, indicating that trace water presence is incompatible with high capacity retention.",
+      "evidence": [
+        "ev1",
+        "ev4"
+      ]
+    },
+    {
+      "text": "Studies examining water contamination at 50-300 ppm levels show significant impacts on SEI formation and electrochemical properties, demonstrating that trace moisture causes measurable degradation in this battery chemistry.",
+      "evidence": [
+        "ev2",
+        "ev5",
+        "ev6"
+      ]
+    },
+    {
+      "text": "No evidence exists that glass capillary tube geometry provides any protective mechanism against the fundamental LiPF6-water degradation chemistry, which occurs at the molecular level.",
+      "evidence": [
+        "ev7"
+      ]
+    },
+    {
+      "text": "The claim's requirement of >95% capacity retention after 200 cycles with trace water present contradicts established electrochemistry, though the existential quantifier 'can perform' and underspecified 'trace amounts' leave narrow possibility at extremely low (single-digit ppm) water levels.",
+      "evidence": [
+        "ev1",
+        "ev2",
+        "ev3",
+        "ev8"
+      ]
+    }
+  ],
+  "evidence": {
+    "ev1": {
+      "type": "web search",
+      "id": "ev1",
+      "source": "https://link.springer.com/article/10.1007/s00706-023-03163-3",
+      "citation": "LiPF6 has relatively high stability in dry inert environments up to 107 \u00b0C, but degrades rapidly when exposed to water or moisture. The PF5 formed can then react with the water present in the electrolyte to form hydrofluoric acid (HF). In commercial lithium-ion batteries, this behavior must not occur, and it is therefore essential to control the presence of water and moisture not only in the electrolytes but also in the other parts of battery system during the manufacturing process."
+    },
+    "ev2": {
+      "type": "web search",
+      "id": "ev2",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/33094999/",
+      "citation": "Thus, we investigated the SEI formed in a Gen2 electrolyte (1.2 M LiPF6 in ethylene carbonate/ethyl methyl carbonate, 3:7 wt %, water content: <10 ppm) with and without additional water (50 ppm) at varying potentials. The impact of additional water on the morphological, (electro)chemical, and structural properties of SEI was studied."
+    },
+    "ev3": {
+      "type": "web search",
+      "id": "ev3",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/37982685/",
+      "citation": "Lithium hexafluorophosphate (LiPF6) has been the dominant conducting salt in lithium-ion battery (LIB) electrolytes for decades; however, it is extremely unstable in even trace water (ppm level)."
+    },
+    "ev4": {
+      "type": "reasoning",
+      "id": "ev4",
+      "source": "thought_2",
+      "citation": "Industry standards: Commercial batteries require <10 ppm water specifically to prevent degradation ... If trace water were compatible with >95% retention over 200 cycles, industry would not require such stringent moisture control (<10 ppm)"
+    },
+    "ev5": {
+      "type": "web search",
+      "id": "ev5",
+      "source": "https://www.osti.gov/servlets/purl/898281",
+      "citation": "Even after deliberately adding 300 ppm of H2O, the electrolyte spectrum (c in Fig. 6) is nearly unchanged from that of the starting electrolyte."
+    },
+    "ev6": {
+      "type": "web search",
+      "id": "ev6",
+      "source": "https://link.springer.com/article/10.1007/s00706-023-03163-3",
+      "citation": "The measurements were first performed on pure electrolyte, then on electrolyte that was contaminated with 250 ppm of H2O. The lower detection limit was not tested, but contamination of 250 ppm can be reliably detected."
+    },
+    "ev7": {
+      "type": "reasoning",
+      "id": "ev7",
+      "source": "thought_2",
+      "citation": "No evidence exists of protective effects from capillary geometry that would overcome this chemistry ... The chemical reaction occurs at the molecular level and would not be prevented by geometric confinement."
+    },
+    "ev8": {
+      "type": "reasoning",
+      "id": "ev8",
+      "source": "likert_score_prediction",
+      "citation": "Why not \u20132: At very low 'trace' levels (single\u2011digit ppm), cells can still perform well; the existential 'can perform' might be satisfied narrowly. Thus not fundamentally impossible. Why not 0/+1/+2: As stated, 'trace water present' is underspecified and typically implies nonzero ppm that measurably harms LiPF6 systems"
+    }
+  }
+}

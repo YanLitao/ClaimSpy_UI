@@ -1,0 +1,21 @@
+Using TDB: /Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB
+Components: ['AL', 'SI', 'C', 'VA']; Phases considered: 182
+Composition (at.%): Al 30, Si 55, C 15; P = 101325 Pa
+Carbide phases present at some T: AL8SIC7
+
+T = 300 K: stable phases (mole fraction)
+  - DIAMOND_A4: 0.528571
+  - AL8SIC7: 0.342857 [carbide]
+  - FCC_A1: 0.128571
+
+T = 400 K: stable phases (mole fraction)
+  - DIAMOND_A4: 0.528570
+  - AL8SIC7: 0.342857 [carbide]
+  - FCC_A1: 0.128572
+
+T = 500 K: stable phases (mole fraction)
+  - DIAMOND_A4: 0.528555
+  - AL8SIC7: 0.342857 [carbide]
+  - FCC_A1: 0.128588
+
+Dominant carbide: AL8SIC7; first appears by 300 K (threshold 1e-06).

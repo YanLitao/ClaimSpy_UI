@@ -1,0 +1,26 @@
+{
+  "conditions": {
+    "T_K": 298.0,
+    "P_Pa": 101325
+  },
+  "composition_atfrac": {
+    "CU": 0.8,
+    "LI": 0.1,
+    "AL": 0.1
+  },
+  "chosen_db": "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB",
+  "considered_dbs": [
+    "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB"
+  ],
+  "phases": [
+    {
+      "phase": "FCC_A1",
+      "fraction": 0.9040966828470127
+    },
+    {
+      "phase": "BCC_B2",
+      "fraction": 0.0959033171529873
+    }
+  ],
+  "phase_presence_threshold": 1e-06
+}

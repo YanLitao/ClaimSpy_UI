@@ -1,0 +1,45 @@
+{
+  "undoped": {
+    "label": "undoped",
+    "natoms": 40,
+    "n_fe": 16,
+    "n_al": 0,
+    "n_o": 24,
+    "supercell_dims": [
+      1,
+      1,
+      2
+    ],
+    "al_indices": [],
+    "dopant_fraction_fe": 0.0,
+    "energy_eV": -316.81610107421875,
+    "magmom_total_muB": 5.7220458984375e-06,
+    "magmom_per_fu_muB": 7.152557373046875e-07,
+    "fmax_after_stage2_eVA": 0.03814562410116196,
+    "steps_stage1": 150,
+    "steps_stage2": 300
+  },
+  "al_doped": {
+    "label": "al_doped",
+    "natoms": 40,
+    "n_fe": 15,
+    "n_al": 1,
+    "n_o": 24,
+    "supercell_dims": [
+      1,
+      1,
+      2
+    ],
+    "al_indices": [
+      3
+    ],
+    "dopant_fraction_fe": 0.0625,
+    "energy_eV": -316.65319442749023,
+    "magmom_total_muB": -4.478233337402344,
+    "magmom_per_fu_muB": -0.559779167175293,
+    "fmax_after_stage2_eVA": 0.04083617776632309,
+    "steps_stage1": 150,
+    "steps_stage2": 300
+  },
+  "dmu_per_fu_muB": -0.5597798824310303
+}

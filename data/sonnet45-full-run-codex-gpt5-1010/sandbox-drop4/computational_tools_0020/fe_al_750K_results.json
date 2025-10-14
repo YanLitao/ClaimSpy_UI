@@ -1,0 +1,29 @@
+{
+  "tdb_used": "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB",
+  "components": [
+    "AL",
+    "FE"
+  ],
+  "temperature_K": 750.0,
+  "pressure_Pa": 101325.0,
+  "moles_total": 1.0,
+  "composition": {
+    "X(AL)": 0.7,
+    "X(FE)": 0.3
+  },
+  "phases_present": [
+    {
+      "phase": "AL5FE2",
+      "fraction": 0.7000000000000002
+    },
+    {
+      "phase": "AL2FE",
+      "fraction": 0.2999999999999999
+    }
+  ],
+  "claim": "Two-phase mixture of Al13Fe4 and Al-rich BCC (A2) solid solution",
+  "claim_correct": false,
+  "notes": {
+    "aggregation": "Fractions derived by summing NP over vertices grouped by Phase label."
+  }
+}

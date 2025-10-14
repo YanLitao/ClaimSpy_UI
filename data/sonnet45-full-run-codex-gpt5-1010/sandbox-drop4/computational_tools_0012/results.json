@@ -1,0 +1,29 @@
+{
+  "units": {
+    "bulk_modulus": "GPa",
+    "volume": "\u00c5^3",
+    "energy": "eV",
+    "b_eos": "eV/\u00c5^3"
+  },
+  "structures": [
+    {
+      "label": "Ag",
+      "composition": "Ag",
+      "n_atoms": 8,
+      "v0": 143.46945985971723,
+      "e0": -22.498682441149057,
+      "b_eva3": 0.5182148936036078,
+      "bulk_GPa": 83.027178708206
+    },
+    {
+      "label": "Ag0.875Cu0.125",
+      "composition": "Ag7Cu (8-atom fcc supercell with 1 Cu; 12.5 at.% Cu)",
+      "n_atoms": 8,
+      "v0": 138.05649217225383,
+      "e0": -23.57609304720424,
+      "b_eva3": 0.599267910576668,
+      "bulk_GPa": 96.01330359216024
+    }
+  ],
+  "percent_change_bulk_modulus": 15.640811943753018
+}

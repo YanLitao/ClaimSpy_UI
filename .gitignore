@@ -1,0 +1,46 @@
+# Local configuration files with API keys
+evaluation-interface/local-config.js
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+*.log
+.tmp/
+temp/
+
+# Node modules (if any)
+node_modules/
+
+# Personal notes and documentation
+notes/
+TODO.md
+PERSONAL.md
+
+# Large data files (optional - uncomment if needed)
+# data/
+# *.json
+# *.csv

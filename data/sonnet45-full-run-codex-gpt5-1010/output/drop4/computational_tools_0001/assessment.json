@@ -1,0 +1,74 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "computational_tools_0001",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -2,
+  "continuous_score": 0.01,
+  "confidence": 0.95,
+  "wall_clock_time": 352.12623405456543,
+  "explanation": [
+    {
+      "text": "The claim asserts that Al20Zn80 (20 at.% Al, 80 at.% Zn) at 870K is a solid at equilibrium. This requires the system to have \u226599.5% solid phase fraction at the specified conditions.",
+      "evidence": [
+        "claim_statement",
+        "threshold_definition"
+      ]
+    },
+    {
+      "text": "CALPHAD equilibrium calculation using the validated COST 507 Al-alloys database shows that at Al20Zn80 and 870K, the system is entirely liquid with a liquid phase fraction of 1.0000 (100%) and no solid phases present above the 10\u207b\u00b3 detection threshold.",
+      "evidence": [
+        "calphad_result"
+      ]
+    },
+    {
+      "text": "The result directly contradicts the claim: the actual solid fraction is 0% while the claim requires \u226599.5% solid. This represents a complete and unambiguous refutation of the claim.",
+      "evidence": [
+        "calphad_result",
+        "threshold_definition"
+      ]
+    },
+    {
+      "text": "The finding is physically consistent with known Al-Zn phase diagram behavior. At 870K (597\u00b0C), which is well above pure Zn's melting point of ~693K (420\u00b0C), Zn-rich compositions are expected to be in the liquid state.",
+      "evidence": [
+        "calphad_result",
+        "parametric_knowledge"
+      ]
+    },
+    {
+      "text": "CALPHAD is the gold-standard computational method for equilibrium phase predictions in binary alloy systems, and the Al-Zn system is well-studied with validated thermodynamic databases, providing high confidence in the result.",
+      "evidence": [
+        "calphad_result",
+        "parametric_knowledge"
+      ]
+    }
+  ],
+  "evidence": {
+    "claim_statement": {
+      "type": "claim",
+      "id": "claim_statement",
+      "source": "Original claim",
+      "citation": "Al20Zn80 at 870K is a solid at equilibrium"
+    },
+    "threshold_definition": {
+      "type": "reasoning",
+      "id": "threshold_definition",
+      "source": "Pre-flight analysis",
+      "citation": "For 'is a solid,' we require that the equilibrium state contains 100% solid phases (no liquid fraction). Given computational/database precision, we'll accept \u226599.5% solid fraction as meeting the threshold."
+    },
+    "calphad_result": {
+      "type": "simulation result",
+      "id": "calphad_result",
+      "source": "observation_0",
+      "citation": "The alloy is entirely liquid at 870 K (LIQUID phase fraction = 1.0000). No solid phases were present above the 10\u22123 fraction threshold."
+    },
+    "parametric_knowledge": {
+      "type": "parametric knowledge",
+      "id": "parametric_knowledge",
+      "source": "Domain knowledge",
+      "citation": "CALPHAD is the gold-standard tool for equilibrium phase predictions. Al-Zn is a well-studied binary system. Pure Zn melts at 692.7K (419.5\u00b0C). At 870K (597\u00b0C), Zn-rich compositions are expected to be liquid."
+    }
+  }
+}

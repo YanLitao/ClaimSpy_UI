@@ -1,0 +1,21 @@
+{
+  "claim": "Is A15 Zr3Sb (25 at.% Sb) thermodynamically stable at 1 atm? Report convex hull distance (meV/atom), competing phases, and any T stability window.",
+  "system": "Zr\u2013Sb",
+  "composition_target": {
+    "ZR": 0.75,
+    "SB": 0.25
+  },
+  "pressure_Pa": 101325,
+  "provenance": {
+    "tdb_dir": "/Users/delip/play/miniclaimspy/TnETDBDB",
+    "tdb_candidates": [
+      "cost507R.TDB"
+    ],
+    "tdb_selected": null
+  },
+  "result": null,
+  "error": {
+    "type": "ElementsNotCovered",
+    "message": "Available local TDBs do not provide the required element set {Zr, Sb, VA}. The present database(s) cannot represent the Zr\u2013Sb binary. Per CALPHAD.md, no external TDBs may be used, so this task cannot be computed here."
+  }
+}

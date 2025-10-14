@@ -1,0 +1,118 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "computational_tools_0028",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": 1,
+  "continuous_score": 0.92,
+  "confidence": 0.72,
+  "wall_clock_time": 487.85941910743713,
+  "explanation": [
+    {
+      "text": "The claim asserts that adding 'a few atomic percent Zn' to the eutectic Al-Mg composition (~34.5 at.% Mg) produces >20% tau phase fraction. This is an existential claim with an explicit threshold of 20% phase fraction.",
+      "evidence": [
+        "claim_statement",
+        "preflight_analysis"
+      ]
+    },
+    {
+      "text": "CALPHAD calculations at 298 K show that at 4 at.% Zn addition, the tau phase fraction is 31.72%, which exceeds the 20% threshold by approximately 58%. At 6 at.% Zn, the tau phase fraction reaches 51.24%, well above the threshold.",
+      "evidence": [
+        "calphad_4pct",
+        "calphad_6pct"
+      ]
+    },
+    {
+      "text": "However, at 2 at.% Zn addition, the tau phase fraction is only 12.19%, which falls below the 20% threshold. The CALPHAD analysis indicates that approximately 3-4 at.% Zn is required to achieve >20% tau phase fraction.",
+      "evidence": [
+        "calphad_2pct",
+        "calphad_threshold"
+      ]
+    },
+    {
+      "text": "The phrase 'a few atomic percent' is ambiguous and could reasonably be interpreted as 2-5 at.% Zn. Since the claim is supported at 4 at.% and above but not at 2 at.%, the claim is feasible but only in a narrower compositional window (\u22653-4 at.% Zn) than the full range that 'a few' might suggest.",
+      "evidence": [
+        "interpretation",
+        "calphad_2pct",
+        "calphad_4pct"
+      ]
+    },
+    {
+      "text": "The baseline validation confirms that at 0 at.% Zn, no tau phase is present, establishing that Zn addition is indeed responsible for tau phase formation. The monotonic increase in tau phase fraction with Zn content (0% \u2192 12.19% \u2192 31.72% \u2192 51.24%) demonstrates internal consistency of the results.",
+      "evidence": [
+        "calphad_baseline",
+        "calphad_trend"
+      ]
+    },
+    {
+      "text": "The assessment is based on a single CALPHAD database (COST507R) at one temperature (298 K). While this provides strong thermodynamic evidence for equilibrium phase fractions, there is no experimental validation or cross-check with alternative databases. Additionally, kinetic accessibility and thermal history effects are not considered.",
+      "evidence": [
+        "calphad_limitations"
+      ]
+    }
+  ],
+  "evidence": {
+    "claim_statement": {
+      "type": "claim",
+      "id": "claim_statement",
+      "source": "Problem statement",
+      "citation": "adding just a few atomic percent Zn...leads to...over 20% phase fraction"
+    },
+    "preflight_analysis": {
+      "type": "reasoning",
+      "id": "preflight_analysis",
+      "source": "thought_0",
+      "citation": "The claim is existential: it asserts that this specific compositional manipulation produces the stated outcome... The FoM is **phase fraction of tau phase** in units of **percentage (%)**... interpret as 2-5 at.% Zn (standard interpretation of 'a few' in materials science)"
+    },
+    "calphad_baseline": {
+      "type": "simulation result",
+      "id": "calphad_baseline",
+      "source": "observation_0",
+      "citation": "At 0 at.% Zn, \u03c4-phase is not present at 298\u2013500 K."
+    },
+    "calphad_2pct": {
+      "type": "simulation result",
+      "id": "calphad_2pct",
+      "source": "observation_0",
+      "citation": "2 at.% Zn: \u03c4 = 12.19%"
+    },
+    "calphad_4pct": {
+      "type": "simulation result",
+      "id": "calphad_4pct",
+      "source": "observation_0",
+      "citation": "4 at.% Zn: \u03c4 = 31.72%"
+    },
+    "calphad_6pct": {
+      "type": "simulation result",
+      "id": "calphad_6pct",
+      "source": "observation_0",
+      "citation": "6 at.% Zn: \u03c4 = 51.24%"
+    },
+    "calphad_threshold": {
+      "type": "simulation result",
+      "id": "calphad_threshold",
+      "source": "observation_0",
+      "citation": "\u22733\u20134 at.% Zn is required to achieve >20% \u03c4-phase fraction at 298 K."
+    },
+    "calphad_trend": {
+      "type": "simulation result",
+      "id": "calphad_trend",
+      "source": "observation_0",
+      "citation": "Adding Zn increases \u03c4-phase fraction at 298 K: 2 at.% Zn: \u03c4 = 12.19%, 4 at.% Zn: \u03c4 = 31.72%, 6 at.% Zn: \u03c4 = 51.24%"
+    },
+    "interpretation": {
+      "type": "reasoning",
+      "id": "interpretation",
+      "source": "thought_1",
+      "citation": "'A few atomic percent' = 2-5 at.% (standard interpretation)... At 4 at.% Zn: 31.72% \u03c4-phase \u2713 EXCEEDS the 20% threshold... The CALPHAD tool notes '\u22733-4 at.% Zn is required to achieve >20% \u03c4-phase fraction'"
+    },
+    "calphad_limitations": {
+      "type": "reasoning",
+      "id": "calphad_limitations",
+      "source": "likert_score_prediction",
+      "citation": "Single CALPHAD database at 298 K; kinetic accessibility and thermal history not treated. Temperature is implicit in the claim; results may shift with T, but equilibrium support at ambient is strong."
+    }
+  }
+}

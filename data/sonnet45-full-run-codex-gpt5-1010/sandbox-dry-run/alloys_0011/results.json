@@ -1,0 +1,47 @@
+{
+  "tdb": "/Users/delip/play/k2code/TnETDBDB/cost507R.TDB",
+  "composition_atpct": {
+    "AL": 20,
+    "LI": 20,
+    "MG": 10,
+    "SC": 20,
+    "TI": 30
+  },
+  "pressure_Pa": 101325,
+  "notes": [
+    "Per workflow: Only TDBs under TnETDBDB may be used; this one lacks required components."
+  ],
+  "conditions": {},
+  "db_elements": [
+    "/-",
+    "AL",
+    "AR",
+    "B",
+    "C",
+    "CE",
+    "CR",
+    "CU",
+    "FE",
+    "HF",
+    "LI",
+    "MG",
+    "MN",
+    "MO",
+    "N",
+    "NB",
+    "ND",
+    "NI",
+    "O",
+    "SI",
+    "SN",
+    "TA",
+    "TI",
+    "V",
+    "VA",
+    "W",
+    "Y",
+    "ZN",
+    "ZR"
+  ],
+  "error": "Selected TDB does not cover required elements; cannot evaluate this alloy. Missing: ['SC']"
+}

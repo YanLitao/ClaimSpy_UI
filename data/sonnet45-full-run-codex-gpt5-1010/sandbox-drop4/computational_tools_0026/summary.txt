@@ -1,0 +1,24 @@
+Using TDB: /Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB
+Tau-like phase names present in DB: ALFESI_TAU1, ALFESI_TAU3, ALLIMG_TAU, CUMGSI_TAU, TAU
+Conditions: T = 298.0 K; P = 101325 Pa
+
+Composition Al-4Mg-2Zn at.% (X_AL=0.940, X_MG=0.040, X_ZN=0.020)
+  - FCC_A1: mole fraction 0.90553
+  - TAU: mole fraction 0.09447
+  Primary phase: FCC_A1 (fraction 0.90553)
+  FCC_A1 present: True; FCC_A1 is primary: True
+  Tau present among stable phases: True
+
+Composition Al-7Mg-3Zn at.% (X_AL=0.900, X_MG=0.070, X_ZN=0.030)
+  - FCC_A1: mole fraction 0.83008
+  - TAU: mole fraction 0.16992
+  Primary phase: FCC_A1 (fraction 0.83008)
+  FCC_A1 present: True; FCC_A1 is primary: True
+  Tau present among stable phases: True
+
+Composition Al-2Mg-1Zn at.% (X_AL=0.970, X_MG=0.020, X_ZN=0.010)
+  - FCC_A1: mole fraction 0.95632
+  - TAU: mole fraction 0.04368
+  Primary phase: FCC_A1 (fraction 0.95632)
+  FCC_A1 present: True; FCC_A1 is primary: True
+  Tau present among stable phases: True

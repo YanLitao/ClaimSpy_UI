@@ -1,0 +1,601 @@
+{
+  "tdb_path": "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB",
+  "components": [
+    "AL",
+    "CU",
+    "LI",
+    "VA"
+  ],
+  "phases": [
+    "ALCULI_R",
+    "ALCULI_T1",
+    "ALCULI_T2",
+    "ALCULI_TB",
+    "ALCU_DELTA",
+    "ALCU_EPSILON",
+    "ALCU_ETA",
+    "ALCU_PRIME",
+    "ALCU_THETA",
+    "ALCU_ZETA",
+    "BCC_A2",
+    "FCC_A1",
+    "HCP_A3",
+    "LIQUID"
+  ],
+  "pressure_Pa": 101325,
+  "np_tol": 1e-06,
+  "temps_K": [
+    298.0,
+    400.0
+  ],
+  "x_li_grid": [
+    0.0,
+    0.01,
+    0.02,
+    0.03,
+    0.04,
+    0.05,
+    0.06,
+    0.07,
+    0.08,
+    0.09,
+    0.1,
+    0.11,
+    0.12,
+    0.13,
+    0.14,
+    0.15
+  ],
+  "points": [
+    {
+      "T_K": 298.0,
+      "x_LI": 0.0,
+      "phases": []
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.01,
+      "phases": [
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.8700102364474265
+        },
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.12499980901722928
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.004989954535344218
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.02,
+      "phases": [
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.7400088688547851
+        },
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.2499996175875418
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.00999151355767307
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.03,
+      "phases": [
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.6100075012587199
+        },
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.37499942616658166
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.01499307257469843
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.04,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.4999992347406463
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.48000613366521067
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.0199946315941431
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.05,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.6249990433154645
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.3500047660711116
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.024996190613423973
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.06,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.7499988518651515
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.22000339849977318
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.02999774963507528
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.07,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.8749986604818724
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.09000203086729465
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03499930865083301
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.08,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.9444630040232166
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03778314711981738
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.017753848856966056
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.09,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.8889063567246115
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.07553303421976498
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03556060905562363
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.1,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.8333497094332099
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.13331221957948014
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.033338070987310016
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.11,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.7777930621334327
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.19109140494225926
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03111553292430799
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.12,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.7222364148443094
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.2488705903021924
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.028892994853498107
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.13,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.6666797675522897
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.3066497756639413
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.026670456783768882
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.14,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.6111231202404364
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.3644289610243089
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.024447918735254846
+        }
+      ]
+    },
+    {
+      "T_K": 298.0,
+      "x_LI": 0.15,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.5555664729559596
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.42220814638779475
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.02222538065624559
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.0,
+      "phases": []
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.01,
+      "phases": [
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.8702903596855656
+        },
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.12499320622240942
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.004716434092025011
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.02,
+      "phases": [
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.7402533492864635
+        },
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.24998594020738782
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.009760710506148785
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.03,
+      "phases": [
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.6102163388721066
+        },
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.37497867419941827
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.014804986928475072
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.04,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.4999714082352122
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.48017932843118
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.019849263333607783
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.05,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.6249641426150708
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.35014231767836773
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.024893539706561392
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.06,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.7499568761447015
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.22010530765362962
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.029937816201668802
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.07,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.8749496100937648
+        },
+        {
+          "name": "ALCU_THETA",
+          "fraction": 0.09006829730302174
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03498209260321349
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.08,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.9446550256007517
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.0378441751525011
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.01750079924674729
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.09,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.8890870829271591
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.07529486987540988
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03561804719743103
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.1,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.8335191402382119
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.13308894051116257
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.03339191925062552
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.11,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.7779511975486145
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.19088301114606615
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.031165791305319313
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.12,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.7223832548716546
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.24867708177715445
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.02893966335119107
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.13,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.6668153121892958
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.30647115241006084
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.02671353540064337
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.14,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.6112473695093175
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.36426522304320896
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.024487407447473585
+        }
+      ]
+    },
+    {
+      "T_K": 400.0,
+      "x_LI": 0.15,
+      "phases": [
+        {
+          "name": "ALCULI_TB",
+          "fraction": 0.5556794268213
+        },
+        {
+          "name": "ALCULI_T1",
+          "fraction": 0.4220592936739191
+        },
+        {
+          "name": "FCC_A1",
+          "fraction": 0.022261279504780896
+        }
+      ]
+    }
+  ]
+}

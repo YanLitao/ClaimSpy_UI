@@ -1,0 +1,45 @@
+{
+  "eq_dims": {
+    "N": 1,
+    "P": 1,
+    "T": 1,
+    "X_CU": 1,
+    "X_LI": 1,
+    "vertex": 4,
+    "component": 3,
+    "internal_dof": 7
+  },
+  "eq_coords": [
+    "N",
+    "P",
+    "T",
+    "X_CU",
+    "X_LI",
+    "vertex",
+    "component"
+  ],
+  "eq_data_vars": [
+    "NP",
+    "GM",
+    "MU",
+    "X",
+    "Y",
+    "Phase"
+  ],
+  "NP_dims": [
+    "N",
+    "P",
+    "T",
+    "X_CU",
+    "X_LI",
+    "vertex"
+  ],
+  "Phase_dims": [
+    "N",
+    "P",
+    "T",
+    "X_CU",
+    "X_LI",
+    "vertex"
+  ]
+}

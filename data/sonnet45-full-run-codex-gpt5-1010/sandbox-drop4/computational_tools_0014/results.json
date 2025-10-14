@@ -1,0 +1,21 @@
+{
+  "barrier_eV": 0.0,
+  "barrier_method": "CI-NEB (IDPP init, BFGS, climb)",
+  "initial_energy_eV": -133.05774116516113,
+  "final_energy_eV": -133.05774998664856,
+  "max_energy_eV": -133.05774116516113,
+  "max_image_index": 0,
+  "n_images": 7,
+  "n_atoms": 37,
+  "slab_shape": "Al(111) 3x3x4 + Au adatom",
+  "notes": "Bottom two Al layers fixed; endpoints relaxed to fmax=0.05 eV/\u00c5; NEB fmax=0.05 eV/\u00c5.",
+  "image_energies_eV": [
+    -133.05774116516113,
+    -133.18642902374268,
+    -133.15646243095398,
+    -133.06949138641357,
+    -133.15648007392883,
+    -133.18644666671753,
+    -133.05774998664856
+  ]
+}

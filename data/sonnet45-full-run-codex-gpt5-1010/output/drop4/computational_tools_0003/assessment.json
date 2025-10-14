@@ -1,0 +1,91 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "computational_tools_0003",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -2,
+  "continuous_score": 0.01,
+  "confidence": 0.92,
+  "wall_clock_time": 569.1158857345581,
+  "explanation": [
+    {
+      "text": "The claim asserts that Al\u2085\u2080Zn\u2085\u2080 forms a single solid phase at all temperatures below 700K. This is a universal claim requiring single-phase behavior throughout the entire temperature range.",
+      "evidence": [
+        "claim_statement"
+      ]
+    },
+    {
+      "text": "CALPHAD thermodynamic calculations using the COST 507 database at 50 at.% Al, 50 at.% Zn, and 1 atm pressure show that at 300K, the equilibrium phase assemblage consists of FCC_A1 (50.3%) and HCP_ZN (49.7%), clearly indicating a two-phase region.",
+      "evidence": [
+        "calphad_300K"
+      ]
+    },
+    {
+      "text": "At 500K, the same CALPHAD calculations show FCC_A1 (53.8%) and HCP_ZN (46.2%), confirming the two-phase region persists at intermediate temperatures.",
+      "evidence": [
+        "calphad_500K"
+      ]
+    },
+    {
+      "text": "Only at 650K does the alloy become single-phase FCC_A1 (100%), indicating that single-phase behavior only emerges near the upper end of the claimed temperature range.",
+      "evidence": [
+        "calphad_650K"
+      ]
+    },
+    {
+      "text": "The presence of two solid phases with substantial fractions (~50% each) at 300K and 500K provides decisive counterexamples to the universal claim, which requires single-phase behavior at ALL temperatures below 700K. The two-phase region spans approximately 90% of the stated temperature range (from ~1K to ~600-650K).",
+      "evidence": [
+        "calphad_300K",
+        "calphad_500K",
+        "calphad_650K"
+      ]
+    },
+    {
+      "text": "This finding is consistent with the known Al-Zn phase diagram, which shows limited mutual solubility at low temperatures, forming FCC (Al-rich) and HCP (Zn-rich) two-phase regions at intermediate compositions.",
+      "evidence": [
+        "calphad_summary",
+        "baseline_knowledge"
+      ]
+    }
+  ],
+  "evidence": {
+    "claim_statement": {
+      "type": "claim",
+      "id": "claim_statement",
+      "source": "problem statement",
+      "citation": "Al\u2085\u2080Zn\u2085\u2080 forms a single solid phase <700K"
+    },
+    "calphad_300K": {
+      "type": "simulation result",
+      "id": "calphad_300K",
+      "source": "observation_0",
+      "citation": "300 K: FCC_A1 (0.503) + HCP_ZN (0.497)"
+    },
+    "calphad_500K": {
+      "type": "simulation result",
+      "id": "calphad_500K",
+      "source": "observation_0",
+      "citation": "500 K: FCC_A1 (0.538) + HCP_ZN (0.462)"
+    },
+    "calphad_650K": {
+      "type": "simulation result",
+      "id": "calphad_650K",
+      "source": "observation_0",
+      "citation": "650 K: FCC_A1 (1.000)"
+    },
+    "calphad_summary": {
+      "type": "simulation result",
+      "id": "calphad_summary",
+      "source": "observation_0",
+      "citation": "At Al50Zn50 and 1 atm, the alloy is not single-phase over 0\u2013700 K. Two-phase solid equilibrium (FCC_A1 + HCP_ZN) exists at low and intermediate temperatures; HCP_ZN dissolves on heating. By ~650 K, the alloy becomes single-phase FCC_A1 and remains so up to 700 K."
+    },
+    "baseline_knowledge": {
+      "type": "parametric knowledge",
+      "id": "baseline_knowledge",
+      "source": "trajectory reasoning",
+      "citation": "Al-Zn system is well-known to have limited mutual solubility at low T, forming FCC (Al-rich) + HCP (Zn-rich) two-phase regions at intermediate compositions"
+    }
+  }
+}

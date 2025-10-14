@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Claim Assessment Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Scientific Claim Assessment Interface</h1>
+                <p>Expert evaluation tool for AI-generated scientific claim explanations and evidence</p>
+            </div>
+            <div>
+                <button onclick="resetApiKey()" class="btn" style="background: #f39c12; color: white; border: none;"
+                    title="Clear stored OpenAI API key">
+                    🔑 Reset API Key
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Left Panel - JSON Context -->
+        <div class="left-panel" id="leftPanel">
+            <div class="left-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>JSON Reference</h3>
+                <button onclick="closeLeftPanel()"
+                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <div class="left-panel-content">
+                <div id="jsonContent">
+                    <p style="color: #666; padding: 2rem; text-align: center;">Select an assessment to view JSON data
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toggle button for left panel -->
+        <button class="toggle-left" onclick="toggleLeftPanel()">JSON</button>
+
+        <!-- Main Panel -->
+        <div class="main-panel">
+            <div class="main-content">
+                <!-- Folder Selection -->
+                <div class="folder-selection" id="folderSelection">
+                    <h3>Select Assessment Data</h3>
+                    <p>Choose a result folder to analyze the assessment data</p>
+                    <select id="folderDropdown" onchange="loadSelectedFolder()"
+                        style="padding: 0.5rem 1rem; margin: 1rem 0; border: 1px solid #ddd; border-radius: 4px; min-width: 200px;">
+                        <option value="">-- Select a result folder --</option>
+                    </select>
+                    <div id="loadingStatus" style="display: none; color: #666; margin-top: 1rem;">
+                        Loading...
+                    </div>
+                </div>
+
+                <!-- Content Area -->
+                <div id="contentArea" class="hidden">
+                    <!-- Claim Display -->
+                    <div class="claim-section">
+                        <div class="claim-text" id="claimText">
+                            Loading claim...
+                        </div>
+                    </div>
+
+                    <!-- System Scores -->
+                    <div class="system-scores">
+                        <h3>System Assessment Scores</h3>
+                        <div class="score-grid" id="systemScores">
+                            <!-- Scores will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Explanations -->
+                    <div class="explanations-section">
+                        <h2>Detailed Explanations</h2>
+                        <div id="explanationsList">
+                            <!-- Explanations will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Evidence -->
+        <div class="right-panel" id="rightPanel">
+            <button class="toggle-right" id="toggleRight" onclick="toggleRightPanel()">
+                Content View
+            </button>
+            <div class="right-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Source Content Analysis</h3>
+                <button onclick="closeRightPanel()"
+                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <div class="right-panel-content">
+                <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                    Analyzing content...
+                </div>
+                <div id="readingModeViewer" class="reading-mode" style="display: none;"></div>
+                <iframe id="webpageViewer" class="webpage-viewer" style="display: none;"></iframe>
+                <div id="welcomeMessage" style="padding: 2rem; text-align: center; color: #666;">
+                    Click on evidence items to analyze source content
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load configuration and main script -->
+    <script src="config.js"></script>
+    <script src="local-config.js" onerror="console.log('No local config found - using default settings')"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

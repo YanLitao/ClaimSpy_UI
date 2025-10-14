@@ -1,0 +1,95 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "superconductors_0011",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": 1,
+  "continuous_score": 0.92,
+  "confidence": 0.76,
+  "wall_clock_time": 235.14200091362,
+  "explanation": [
+    {
+      "text": "A15 Nb3Si exhibits well-documented superconducting critical temperatures across a wide pressure range, with Tc \u2248 18 K at ambient pressure decreasing monotonically to approximately 5.2 K at 88 GPa. Multiple independent sources confirm these values and the pressure dependence (\u2202Tc/\u2202P = -2.67\u00d710\u207b\u2075 K/bar).",
+      "evidence": [
+        "obs0_source1",
+        "obs0_source2",
+        "obs0_source3",
+        "obs1_source3"
+      ]
+    },
+    {
+      "text": "Tetragonal Nb3Si (Ti3P-type structure) shows no evidence of superconductivity in its native form. Systematic studies of 12 Ti3P-type A3B compounds identified only 5 superconductors (Zr3Si, Zr3Ge, Zr3P, V3P, Nb3Ge), all with Tc < 1 K, and notably did not list Nb3Si as superconducting in this structure.",
+      "evidence": [
+        "obs2_source2"
+      ]
+    },
+    {
+      "text": "Explosive compression experiments that transform tetragonal Nb3Si to A15 structure yield Tc = 18 K for the A15 product, not the tetragonal starting material. This confirms that superconductivity arises from the A15 phase, not the tetragonal phase.",
+      "evidence": [
+        "obs1_source1",
+        "obs1_source3",
+        "obs2_source1"
+      ]
+    },
+    {
+      "text": "Across the entire experimentally studied pressure range (0-120 GPa), A15 Tc consistently exceeds tetragonal Tc by at least 5 K. No counterexamples were found where tetragonal Tc \u2265 A15 Tc at any documented pressure.",
+      "evidence": [
+        "obs0_source1",
+        "obs0_source2"
+      ]
+    },
+    {
+      "text": "The universal quantifier 'regardless of pressure' is supported within the experimentally accessible pressure range but cannot be definitively proven for all theoretically possible pressures. Additionally, direct Tc measurements for tetragonal Nb3Si under pressure are absent, with conclusions inferred from literature gaps and analog compounds.",
+      "evidence": [
+        "obs0_source1",
+        "obs2_source2"
+      ]
+    }
+  ],
+  "evidence": {
+    "obs0_source1": {
+      "type": "web search",
+      "id": "obs0_source1",
+      "source": "https://meetings.aps.org/Meeting/MAR21/Session/S23.9",
+      "citation": "Using these Tc (P) data for A15 Nb3Si, applying pressures up to 120 GPa at room temperature on tetragonal Nb3Si and measuring superconductivity present via resistivity gave no indication of any transition to the A15 structure. Tc is suppressed to ~ 5.2 K at 88 GPa."
+    },
+    "obs0_source2": {
+      "type": "web search",
+      "id": "obs0_source2",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/33647891/",
+      "citation": "This is in contrast to the explosive compression (up toP\u223c 110 GPa) of tetragonal Nb3Si, which produced 50%-70% A15 material, Tc= 18 K at ambient pressure, in a 1981 Los Alamos National Laboratory experiment. Our theoretical calculations show that A15 Nb3Si has an enthalpy vs the tetragonal structure that is 70 meV atom-1 smaller at 100 GPa, while at ambient pressure the tetragonal phase enthalpy is lower than that of the A15 phase by 90 meV atom-1. Tc is suppressed to \u223c5.2 K at 88 GPa."
+    },
+    "obs0_source3": {
+      "type": "web search",
+      "id": "obs0_source3",
+      "source": "https://link.springer.com/article/10.1007/BF00654500",
+      "citation": "For 0\u2264P\u226420 kbar (2 GPa), Tc decrease linearly with increasing pressure at a rate \u2202Tc/\u2202P=\u22122.67\u00d710\u22125 K/bar."
+    },
+    "obs1_source1": {
+      "type": "web search",
+      "id": "obs1_source1",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/33647891/",
+      "citation": "This is in contrast to the explosive compression (up toP\u223c 110 GPa) of tetragonal Nb3Si, which produced 50%-70% A15 material,Tc= 18 K at ambient pressure, in a 1981 Los Alamos National Laboratory experiment."
+    },
+    "obs1_source3": {
+      "type": "web search",
+      "id": "obs1_source3",
+      "source": "https://www.osti.gov/biblio/6343342",
+      "citation": "Superconducting Nb3Si has been made by the explosive compression of the high temperature, equilibrium tetragonal Ti3P phase, confirming the work of Pan and his associates at Kiev. The material has a broad superconducting transition with an onset Tc \u2248 18K and a midpoint \u2248 16K."
+    },
+    "obs2_source1": {
+      "type": "web search",
+      "id": "obs2_source1",
+      "source": "https://www.osti.gov/biblio/6343342",
+      "citation": "Superconducting Nb3Si has been made by the explosive compression of the high temperature, equilibrium tetragonal Ti3P phase, confirming the work of Pan and his associates at Kiev. The material has a broad superconducting transition with an onset Tc \u2248 18K and a midpoint \u2248 16K."
+    },
+    "obs2_source2": {
+      "type": "web search",
+      "id": "obs2_source2",
+      "source": "https://ui.adsabs.harvard.edu/abs/1978PhRvB..17..184W/abstract",
+      "citation": "A study of 12 intermetallic A3B compounds which crystallize in the tetragonal Ti3P-type structure has revealed five new superconductors with transition temperatures below 1 K: Zr3Si, Zr3Ge, Zr3P, V3P, and Nb3Ge (extrapolated from the alloy series Nb-Ge-As)."
+    }
+  }
+}

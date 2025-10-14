@@ -1,0 +1,19 @@
+{
+  "composition_wt_percent": {
+    "AL": 6.5,
+    "ZR": 2.0,
+    "MO": 1.0,
+    "V": 1.0,
+    "TI": 89.5
+  },
+  "composition_mole_fraction": {
+    "AL": 0.11139384336518163,
+    "ZR": 0.010137606410663245,
+    "MO": 0.004819140214728212,
+    "V": 0.009077009974248344,
+    "TI": 0.8645724000351785
+  },
+  "database": "cost507R.TDB",
+  "phases_considered": [],
+  "error": "Selected database does not contain relevant phases for TI-AL-ZR-MO-V system. Cannot perform equilibrium calculation."
+}

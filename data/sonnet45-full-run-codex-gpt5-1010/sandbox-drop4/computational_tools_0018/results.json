@@ -1,0 +1,27 @@
+{
+  "method": "CHGNet",
+  "supercell": "Si diamond conventional 2x2x2 (64 atoms)",
+  "a0_Si_A": 5.431,
+  "energies_eV": {
+    "E_bulk_64": -339.98687744140625,
+    "E_substitutional": -340.2176818847656,
+    "E_interstitial": -343.72363328933716,
+    "mu_Si_per_atom": -5.312294960021973
+  },
+  "delta_E_eV": 1.8063435554504395,
+  "notes": "\u0394E = E_f(P_i) - E_f(P_Si)",
+  "relaxation": {
+    "bulk": {
+      "final_fmax": 9.710947779240087e-06,
+      "steps": 2
+    },
+    "sub": {
+      "final_fmax": 0.043135277926921844,
+      "steps": 2
+    },
+    "int": {
+      "final_fmax": 0.04401204735040665,
+      "steps": 44
+    }
+  }
+}

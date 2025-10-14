@@ -1,0 +1,28 @@
+{
+  "tdb_path": "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB",
+  "components": [
+    "AL",
+    "ZN",
+    "VA"
+  ],
+  "phases_considered": [
+    "LIQUID",
+    "FCC_A1",
+    "HCP_A3",
+    "HCP_ZN"
+  ],
+  "eutectic_T_K": 654.25,
+  "eutectic_x_zn": 0.673,
+  "eutectic_atpct_zn": 67.30000000000001,
+  "message": "Global minimum of liquidus across composition.",
+  "phase_check": {
+    "below": [
+      "FCC_A1",
+      "HCP_ZN"
+    ],
+    "above": [
+      "FCC_A1",
+      "LIQUID"
+    ]
+  }
+}

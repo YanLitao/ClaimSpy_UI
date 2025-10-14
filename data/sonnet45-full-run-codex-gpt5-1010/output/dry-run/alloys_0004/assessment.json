@@ -1,0 +1,77 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "alloys_0004",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -1,
+  "continuous_score": 0.08,
+  "confidence": 0.75,
+  "wall_clock_time": 697.8537480831146,
+  "explanation": [
+    {
+      "text": "The claim asserts that a tetragonal Ti\u2082Al\u2083 phase has been 'predicted theoretically using density functional theory.' However, three systematic literature searches found zero evidence of any such DFT prediction. The first search used specific terms ('Ti2Al3 tetragonal structure DFT'), the second used broader terms ('Ti-Al intermetallic tetragonal phase DFT metastable'), and the third validated the search tool by finding known Ti-Al phases (Ti\u2083Al, TiAl, TiAl\u2083). The complete absence of DFT predictions for a phase explicitly claimed to be 'predicted theoretically' directly contradicts the claim's stated basis.",
+      "evidence": [
+        "search_0",
+        "search_1",
+        "search_2"
+      ]
+    },
+    {
+      "text": "CALPHAD thermodynamic calculations at the Ti\u2082Al\u2083 composition (40 at.% Ti, 60 at.% Al) show that the system does not form a Ti\u2082Al\u2083 phase. Instead, from 300-1260 K, the composition yields a two-phase mixture of TiAl (62.7%) and Al\u2082Ti (37.3%), and from 1260-1500 K, it forms single-phase TiAl. This phase separation behavior indicates that the Ti\u2082Al\u2083 stoichiometry is thermodynamically unfavorable, with the system preferring to decompose into known stable phases rather than form the claimed Ti\u2082Al\u2083 phase.",
+      "evidence": [
+        "calphad_3"
+      ]
+    },
+    {
+      "text": "The literature search confirmed that the Ti-Al system contains well-documented intermetallic phases including Ti\u2083Al (\u03b1\u2082), TiAl (\u03b3), and TiAl\u2083, but no Ti\u2082Al\u2083 phase. Given that the Ti-Al system is extensively studied in materials science, the absence of any mention of Ti\u2082Al\u2083 across multiple search queries is significant and suggests this phase has not been predicted or observed in the literature.",
+      "evidence": [
+        "search_2"
+      ]
+    },
+    {
+      "text": "The claim receives a score of -1 (Partially Infeasible) rather than -2 (Extremely Infeasible) because metastable phases can exist outside equilibrium thermodynamic databases, and the processing conditions are not specified in the claim. It is theoretically possible that under specific non-equilibrium processing conditions, a metastable Ti\u2082Al\u2083 precipitate could form, even if not captured by equilibrium CALPHAD calculations. However, the absence of the explicitly claimed DFT prediction and the thermodynamic evidence of phase separation provide concrete reasons to assess the claim as partially infeasible.",
+      "evidence": [
+        "calphad_3",
+        "search_0",
+        "search_1"
+      ]
+    },
+    {
+      "text": "The claim lacks experimental validation on multiple fronts: (1) no structural characterization (XRD, TEM) confirming tetragonal Ti\u2082Al\u2083 precipitates, (2) no compositional verification (EDS, EELS) of precipitate stoichiometry, and (3) no mechanical testing demonstrating the claimed strengthening effect. These missing elements, combined with the absence of the theoretical DFT foundation, mean the claim cannot be supported by available evidence.",
+      "evidence": [
+        "search_0",
+        "search_1",
+        "search_2",
+        "calphad_3"
+      ]
+    }
+  ],
+  "evidence": {
+    "search_0": {
+      "type": "web search",
+      "id": "search_0",
+      "source": "observation_0",
+      "citation": "Search query: 'Ti2Al3 tetragonal structure DFT density functional theory prediction' returned 0 results."
+    },
+    "search_1": {
+      "type": "web search",
+      "id": "search_1",
+      "source": "observation_1",
+      "citation": "Search query: 'Ti-Al intermetallic tetragonal phase DFT theoretical prediction metastable' returned 0 results."
+    },
+    "search_2": {
+      "type": "web search",
+      "id": "search_2",
+      "source": "observation_2",
+      "citation": "Search query: 'titanium aluminum Ti-Al phase diagram intermetallic compounds' found documented phases Ti\u2083Al (\u03b1\u2082), TiAl (\u03b3), and TiAl\u2083, but no mention of Ti\u2082Al\u2083. Sources: https://link.springer.com/article/10.1361/154770306X109809, https://link.springer.com/article/10.1007/BF02652532, https://msetab.wordpress.com/2014/01/24/titanium-aluminum-ti-al-phase-diagram/"
+    },
+    "calphad_3": {
+      "type": "simulation result",
+      "id": "calphad_3",
+      "source": "observation_3",
+      "citation": "CALPHAD equilibrium calculation at Ti-40at%/Al-60at% (Ti\u2082Al\u2083 stoichiometry) using COST507R database across 300-1500 K shows: (1) 300-1260 K: two-phase mixture of TiAl (62.7%) + Al\u2082Ti (37.3%); (2) 1260-1500 K: single-phase TiAl (100%). No Ti\u2082Al\u2083 phase present at this composition."
+    }
+  }
+}

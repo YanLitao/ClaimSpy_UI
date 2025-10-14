@@ -1,0 +1,83 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "alloys_0009",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -2,
+  "continuous_score": 0.01,
+  "confidence": 0.8,
+  "wall_clock_time": 379.56672501564026,
+  "explanation": [
+    {
+      "text": "The claim asserts superplastic forming of AlBeMet (aluminum-beryllium composite) at 700\u00b0C. However, this temperature exceeds the melting point of aluminum (~660\u00b0C), which is a primary constituent of AlBeMet. Superplastic forming is a solid-state process requiring the material to remain below its solidus temperature.",
+      "evidence": [
+        "ev1_al_melting",
+        "ev2_spf_definition"
+      ]
+    },
+    {
+      "text": "Literature searches confirm that aluminum alloy superplastic forming occurs at 450-520\u00b0C, with aluminum matrix composites requiring elevated temperatures up to 560-580\u00b0C. No sources document aluminum-based superplastic forming at or above 700\u00b0C.",
+      "evidence": [
+        "obs1_al_spf_range",
+        "obs2_composite_temp",
+        "obs3_albemet_props"
+      ]
+    },
+    {
+      "text": "At 700\u00b0C, an aluminum-containing matrix would be partially or fully molten, preventing solid-state grain boundary sliding mechanisms required for superplastic forming. The sheet would lose structural integrity rather than undergo controlled plastic deformation.",
+      "evidence": [
+        "ev1_al_melting",
+        "ev2_spf_definition",
+        "obs1_al_spf_range"
+      ]
+    },
+    {
+      "text": "While AlBeMet is confirmed as a real, formable material with temperature-dependent ductility, the claim temperature of 700\u00b0C represents a fundamental thermodynamic barrier rather than a feasible processing window extension.",
+      "evidence": [
+        "obs3_albemet_props",
+        "obs4_nasa_data",
+        "ev1_al_melting"
+      ]
+    }
+  ],
+  "evidence": {
+    "ev1_al_melting": {
+      "type": "parametric knowledge",
+      "id": "ev1_al_melting",
+      "source": "Materials science reference data",
+      "citation": "Pure aluminum melts at approximately 660\u00b0C. Aluminum alloys and composites with aluminum-rich matrices have solidus temperatures at or below this value."
+    },
+    "ev2_spf_definition": {
+      "type": "parametric knowledge",
+      "id": "ev2_spf_definition",
+      "source": "Superplastic forming process definition",
+      "citation": "Superplastic forming is a solid-state metalworking process that requires the material to remain below its solidus temperature to enable grain boundary sliding without melting."
+    },
+    "obs1_al_spf_range": {
+      "type": "web search",
+      "id": "obs1_al_spf_range",
+      "source": "https://www.totalmateria.com/en-us/articles/superplastic-aluminum-alloys",
+      "citation": "Superplastically formed (SPF) aluminum alloys have the ability to be stretched to several times their original size without failure when heated to between 470-520\u00b0C."
+    },
+    "obs2_composite_temp": {
+      "type": "web search",
+      "id": "obs2_composite_temp",
+      "source": "https://www.scientific.net/AMR.538-541.1111",
+      "citation": "In composites high ductility was obtained only the temperature more than 560\u00b0C. The maximum dome height of 19 mm was obtained at 580\u00b0C."
+    },
+    "obs3_albemet_props": {
+      "type": "web search",
+      "id": "obs3_albemet_props",
+      "source": "https://www.materion.com/en/products/performance-materials/metal-matrix-composites/albemet-albecast",
+      "citation": "AlBeMet MMCs offer the high modulus and low-density characteristics of beryllium with the fabrication and mechanical property behaviors of aluminum, making them ideal for challenging design applications."
+    },
+    "obs4_nasa_data": {
+      "type": "web search",
+      "id": "obs4_nasa_data",
+      "source": "https://ntrs.nasa.gov/citations/20030106419",
+      "citation": "The ultimate tensile and yield strengths for extruded AlBeMetl62 material increased with decreasing temperature, and the percent elongation decreased with decreasing temperature."
+    }
+  }
+}

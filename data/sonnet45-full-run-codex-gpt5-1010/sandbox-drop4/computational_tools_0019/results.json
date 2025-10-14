@@ -1,0 +1,14 @@
+{
+  "E_f_eV_N_Ga": 2.7215309143066406,
+  "E_f_eV_N_As": 0.9356355667114258,
+  "Delta_E_f_eV": 1.7858953475952148,
+  "more_stable_site": "N_As",
+  "notes": {
+    "mu_As": -4.596661567687988,
+    "mu_Ga": -3.5324764251708984,
+    "mu_N": -9.033517837524414,
+    "mu_GaAs": -8.129137992858887,
+    "mu_GaN": -12.565994262695312,
+    "assumptions": "As-rich for GaAs; mu_N from GaN stability; neutral defects; 0 K enthalpy approximation"
+  }
+}

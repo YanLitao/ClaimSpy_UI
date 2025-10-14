@@ -1,0 +1,106 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "computational_tools_0036",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": 2,
+  "continuous_score": 0.99,
+  "confidence": 0.88,
+  "wall_clock_time": 372.3063418865204,
+  "explanation": [
+    {
+      "text": "CHGNet MLIP calculations on dilute substitutional defects in Al fcc matrix show Mg causes +0.040% lattice expansion, while Cu causes -0.215% contraction and Zn shows 0.000% change. This directly establishes Mg as producing the largest (and only) increase among the three elements.",
+      "evidence": [
+        "chgnet_computation",
+        "baseline_validation"
+      ]
+    },
+    {
+      "text": "Classic experimental measurements from 1948 independently confirm that magnesium expands the aluminum lattice while copper and zinc contract it, providing direct experimental validation of the computational ranking.",
+      "evidence": [
+        "experimental_1948",
+        "literature_validation"
+      ]
+    },
+    {
+      "text": "The results are physically consistent with atomic size arguments: Mg atomic radius (1.60 \u00c5) exceeds Al radius (1.43 \u00c5) leading to expansion, while Cu (1.28 \u00c5) and Zn (1.39 \u00c5) are smaller or comparable to Al, leading to contraction or minimal change.",
+      "evidence": [
+        "physical_reasoning",
+        "atomic_radii"
+      ]
+    },
+    {
+      "text": "The CHGNet baseline for pure Al (4.050 \u00c5) matches experimental values (~4.05 \u00c5) within 0.1%, validating the computational methodology and establishing confidence in the defect calculations.",
+      "evidence": [
+        "baseline_validation",
+        "method_validation"
+      ]
+    },
+    {
+      "text": "Modern DFT literature (2013, 2017) on Al-Cu, Al-Mg, and Al-Zn systems using dilute supercells corroborates the computational approach and validates lattice parameter calculations for these specific alloy systems.",
+      "evidence": [
+        "literature_2013",
+        "literature_2017",
+        "method_validation"
+      ]
+    }
+  ],
+  "evidence": {
+    "chgnet_computation": {
+      "type": "simulation result",
+      "id": "chgnet_computation",
+      "source": "observation_0",
+      "citation": "Pure Al: a = 4.050000 \u00c5. Cu in Al: a = 4.041292 \u00c5, \u0394a = \u22120.008708 \u00c5, \u0394a = \u22120.2150%. Mg in Al: a = 4.051603 \u00c5, \u0394a = +0.001603 \u00c5, \u0394a = +0.0396%. Zn in Al: a = 4.050000 \u00c5, \u0394a = 0.000000 \u00c5, \u0394a = 0.0000%. Ranking by expansion: Mg > Zn > Cu"
+    },
+    "baseline_validation": {
+      "type": "simulation result",
+      "id": "baseline_validation",
+      "source": "observation_0",
+      "citation": "Pure Al: a = 4.050000 \u00c5"
+    },
+    "experimental_1948": {
+      "type": "web search",
+      "id": "experimental_1948",
+      "source": "https://royalsocietypublishing.org/doi/10.1098/rspa.1948.0030",
+      "citation": "The lattice of aluminium is expanded by the solution of magnesium or germanium, and contracted by the solution of lithium, silicon, copper or zinc."
+    },
+    "literature_2013": {
+      "type": "web search",
+      "id": "literature_2013",
+      "source": "https://www.sciencedirect.com/science/article/abs/pii/S0927025612005290",
+      "citation": "Changes in the lattice constants of 55 Al-based solid solutions, as well as local lattice distortions induced by solute atoms, were studied on the basis of first-principles calculations using 3.70, 3.13, 1.56, and 0.93 at.% alloys. The calculated volume size factor and the misfit strain were in good agreement with the experimental data available in the literature."
+    },
+    "literature_2017": {
+      "type": "web search",
+      "id": "literature_2017",
+      "source": "https://www.sciencedirect.com/science/article/abs/pii/S0927025617303257",
+      "citation": "Calculated lattice parameters of fcc aluminum matrices of Al-Cu, Al-Mg, Al-Ni, and Al-Zn at 25 \u00b0C are compared with available experiments."
+    },
+    "literature_validation": {
+      "type": "web search",
+      "id": "literature_validation",
+      "source": "observation_1",
+      "citation": "Three literature sources from observation_1 provide convergent evidence on lattice parameter changes in Al-Cu, Al-Mg, and Al-Zn systems using both experimental and computational methods."
+    },
+    "physical_reasoning": {
+      "type": "reasoning",
+      "id": "physical_reasoning",
+      "source": "thought_1",
+      "citation": "Mg atomic radius (1.60 \u00c5) > Al (1.43 \u00c5) \u2192 expansion expected \u2713 Cu atomic radius (1.28 \u00c5) < Al (1.43 \u00c5) \u2192 contraction expected \u2713 Zn atomic radius (1.39 \u00c5) \u2248 Al (1.43 \u00c5) \u2192 minimal change expected \u2713 Results are physically consistent with atomic size arguments"
+    },
+    "atomic_radii": {
+      "type": "parametric knowledge",
+      "id": "atomic_radii",
+      "source": null,
+      "citation": "Atomic radii: Mg (1.60 \u00c5), Al (1.43 \u00c5), Zn (1.39 \u00c5), Cu (1.28 \u00c5)"
+    },
+    "method_validation": {
+      "type": "web search",
+      "id": "method_validation",
+      "source": "observation_1",
+      "citation": "Modern DFT studies validate the computational approach for Al-Cu, Al-Mg, Al-Zn systems using dilute supercells and comparison with experimental data."
+    }
+  }
+}

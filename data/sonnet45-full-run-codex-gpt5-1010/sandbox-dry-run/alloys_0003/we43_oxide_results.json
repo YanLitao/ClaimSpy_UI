@@ -1,0 +1,47 @@
+{
+  "composition_wt%": {
+    "MG": 91.5,
+    "Y": 4.0,
+    "ND": 3.0,
+    "ZR": 0.5,
+    "O": 1.0
+  },
+  "composition_mole_fraction": {
+    "MG": 0.965684994870545,
+    "Y": 0.011540901019189705,
+    "ND": 0.005335062773678524,
+    "ZR": 0.0014059533394007015,
+    "O": 0.016033087997186023
+  },
+  "temperatures_K": [
+    298.0,
+    900.0
+  ],
+  "pressure_Pa": 101325.0,
+  "tdb": "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB",
+  "notes": "Phase fractions are mole-based. Oxides identified via constituent O in phase model. Aggregation uses NP-by-vertex grouped by Phase.",
+  "stable_by_T": {
+    "298.0": {
+      "stable_phases": [],
+      "oxide_phases": [],
+      "total_oxide_fraction": 0.0
+    },
+    "900.0": {
+      "stable_phases": [],
+      "oxide_phases": [],
+      "total_oxide_fraction": 0.0
+    }
+  },
+  "stoichiometric_oxide_estimate": {
+    "oxides": [
+      {
+        "oxide": "Y2O3",
+        "mass_g_per_100g": 4.704641540096256,
+        "element_consumed_g": 3.7046415400962562,
+        "O_used_g": 1.0
+      }
+    ],
+    "total_oxide_mass_g_per_100g": 4.704641540096256,
+    "O_unreacted_g_per_100g": 0.0
+  }
+}

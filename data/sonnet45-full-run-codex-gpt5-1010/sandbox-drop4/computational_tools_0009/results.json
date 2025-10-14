@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "warning": "Equilibrium result has no 'phase' dimension; this TDB likely lacks parameterization for Cu\u2013Al\u2013Li.",
+  "tdb": "/Users/delip/play/k2code/TnETDBDB/cost507R.TDB",
+  "T_K": 298.0,
+  "P_Pa": 101325.0,
+  "composition_atfrac": {
+    "CU": 0.3,
+    "AL": 0.3,
+    "LI": 0.39999999999999997
+  },
+  "stable_phases": [],
+  "single_phase": false
+}

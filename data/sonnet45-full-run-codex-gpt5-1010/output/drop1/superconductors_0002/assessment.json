@@ -1,0 +1,101 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "superconductors_0002",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -1,
+  "continuous_score": 0.08,
+  "confidence": 0.58,
+  "wall_clock_time": 841.7513070106506,
+  "explanation": [
+    {
+      "text": "The claim asserts three components: (1) thermodynamic stability of A15 Zr3Sb at atmospheric pressure, (2) experimental discovery of this phase, and (3) superconducting properties. The trajectory found computational support only for thermodynamic stability from a single MLIP source (CHGNet), while the other two components lack any supporting evidence.",
+      "evidence": [
+        "ev1_chgnet_stability",
+        "ev2_literature_ni3p",
+        "ev3_no_discovery"
+      ]
+    },
+    {
+      "text": "CHGNet MLIP calculations predict A15 Zr3Sb lies on the convex hull (E_above_hull = 0.000 eV/atom) and is 6.79 meV/atom lower in energy than Ni3P-type Zr3Sb. This satisfies the \u226425 meV/atom threshold for thermodynamic stability. However, this is a single computational source with typical MLIP uncertainty of 10-50 meV/atom, and the energy difference falls within this uncertainty range.",
+      "evidence": [
+        "ev1_chgnet_stability",
+        "ev4_mlip_uncertainty"
+      ]
+    },
+    {
+      "text": "Experimental literature reports Ni3P-type Zr3Sb as the known stable phase in the Zr-Sb system at ambient conditions, with no reports of A15 phase synthesis or characterization. This directly contradicts the 'discovered' aspect of the claim and raises questions about the computational prediction.",
+      "evidence": [
+        "ev2_literature_ni3p",
+        "ev3_no_discovery"
+      ]
+    },
+    {
+      "text": "No computational or experimental evidence exists for superconductivity in Zr3Sb (either A15 or Ni3P structure). While A15 structures can host superconductivity (e.g., V3Si at ~17K, Nb3Ge at ~23.2K), the A15 prototype Cr3Si is non-superconducting, demonstrating that the structure alone does not guarantee superconductivity. Electronic structure calculations would be required to verify this claim component.",
+      "evidence": [
+        "ev5_a15_superconductivity",
+        "ev6_no_zr3sb_tc"
+      ]
+    },
+    {
+      "text": "The CALPHAD tool, which would be the most appropriate for thermodynamic phase stability assessment, could not evaluate the Zr-Sb system because Sb is not present in the available database (COST507R.TDB). This limits the verification to a single computational method (CHGNet MLIP) without independent confirmation.",
+      "evidence": [
+        "ev7_calphad_failure"
+      ]
+    },
+    {
+      "text": "The claim's use of 'discovered' implies experimental confirmation, which is entirely absent. The claim's assertion of 'superconductor' requires measurement of Tc > 0 K or validated electron-phonon coupling calculations, neither of which are available. Only the thermodynamic stability component has computational support, and even that is model-dependent and contradicts experimental phase observations.",
+      "evidence": [
+        "ev3_no_discovery",
+        "ev6_no_zr3sb_tc",
+        "ev2_literature_ni3p"
+      ]
+    }
+  ],
+  "evidence": {
+    "ev1_chgnet_stability": {
+      "type": "simulation result",
+      "id": "ev1_chgnet_stability",
+      "source": "observation_3",
+      "citation": "A15 Zr3Sb: Eform = \u22120.57739 eV/atom, Eabove-hull = 0.00000 eV/atom. Ni3P Zr3Sb: Eform = \u22120.57060 eV/atom, Eabove-hull = 0.00679 eV/atom. A15 is the ground-state polymorph, 6.79 meV/atom lower in energy than Ni3P-type. A15 is on the convex hull, indicating thermodynamic stability."
+    },
+    "ev2_literature_ni3p": {
+      "type": "web search",
+      "id": "ev2_literature_ni3p",
+      "source": "https://link.springer.com/article/10.1361/105497199770340752",
+      "citation": "Zr3Sb (Ni3P type) seems to dissolve up to 3.5 at.% of Fe replacing Zr in the structure."
+    },
+    "ev3_no_discovery": {
+      "type": "web search",
+      "id": "ev3_no_discovery",
+      "source": "observation_1",
+      "citation": "Search for 'Zr3Sb A15 phase thermodynamic stability formation energy convex hull' returned no results, indicating no published literature on A15 Zr3Sb discovery or characterization."
+    },
+    "ev4_mlip_uncertainty": {
+      "type": "parametric knowledge",
+      "id": "ev4_mlip_uncertainty",
+      "source": "trajectory reasoning",
+      "citation": "Typical MLIP uncertainty ranges are 10-50 meV/atom, and the 6.79 meV/atom energy difference between A15 and Ni3P falls within this uncertainty range."
+    },
+    "ev5_a15_superconductivity": {
+      "type": "web search",
+      "id": "ev5_a15_superconductivity",
+      "source": "https://arxiv.org/pdf/1505.06393",
+      "citation": "This changed with the discovery that vanadium silicide V3Si showed superconductivity at around 17 K in 1953. ... Niobium-germanium held the record for the highest temperature of 23.2 K from 1973 until the discovery of the cuprate superconductors in 1986. ... The prototypical A15 compound is the non-superconducting Cr3Si."
+    },
+    "ev6_no_zr3sb_tc": {
+      "type": "reasoning",
+      "id": "ev6_no_zr3sb_tc",
+      "source": "trajectory synthesis",
+      "citation": "No direct evidence for superconductivity in either A15 or Ni3P Zr3Sb. Electronic structure calculations (electron-phonon coupling, density of states) would be required for verification."
+    },
+    "ev7_calphad_failure": {
+      "type": "simulation result",
+      "id": "ev7_calphad_failure",
+      "source": "observation_0",
+      "citation": "The evaluation was aborted because the available database (COST507R.TDB) does not contain Sb."
+    }
+  }
+}

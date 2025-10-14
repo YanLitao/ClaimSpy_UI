@@ -1,0 +1,11 @@
+{
+  "poscar_initial": "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/POSCAR.vo2_initial",
+  "poscar_final": "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/POSCAR.vo2_final",
+  "cif_final": "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/vo2_final.cif",
+  "json": "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/vo2_relax_results.json",
+  "csv": "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/vo2_relax_summary.csv",
+  "relax_logs": [
+    "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/relax1.log",
+    "/Users/delip/play/miniclaimspy/sandbox/computational_tools_0013/relax2.log"
+  ]
+}

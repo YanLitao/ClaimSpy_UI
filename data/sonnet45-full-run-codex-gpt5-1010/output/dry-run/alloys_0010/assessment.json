@@ -1,0 +1,87 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "alloys_0010",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": -2,
+  "continuous_score": 0.01,
+  "confidence": 0.86,
+  "wall_clock_time": 242.6654567718506,
+  "explanation": [
+    {
+      "text": "The density claim of 2.7 g/cc is physically consistent with an Al-2wt%Be composition. Rule-of-mixtures calculation yields approximately 2.68 g/cc, which matches the claimed value within measurement uncertainty.",
+      "evidence": [
+        "evidence_1",
+        "evidence_2"
+      ]
+    },
+    {
+      "text": "The room temperature UTS of 500 MPa is plausible for high-strength aluminum alloys. Commercial 7xxx series Al alloys achieve 400-600 MPa, placing this claim within known ranges for precipitation-hardened aluminum alloys, though no specific data for Al-2wt%Be was found.",
+      "evidence": [
+        "evidence_3"
+      ]
+    },
+    {
+      "text": "The claim of 50 MPa tensile strength at 650\u00b0C is physically implausible and represents a fatal flaw. At 650\u00b0C, the alloy operates at 98.9% of aluminum's melting point (660.3\u00b0C), where aluminum-based alloys experience severe weakening.",
+      "evidence": [
+        "evidence_4",
+        "evidence_5",
+        "evidence_6"
+      ]
+    },
+    {
+      "text": "Literature evidence confirms that aluminum alloys lose significant strength above 300\u00b0C, and commercial Al-Be alloys are rated only to 150\u00b0C maximum operating temperature. At temperatures approaching the melting point, aluminum experiences extreme diffusion rates, grain boundary sliding, precipitate dissolution, and incipient melting, making the claimed high-temperature strength impossible.",
+      "evidence": [
+        "evidence_5",
+        "evidence_6",
+        "evidence_7"
+      ]
+    }
+  ],
+  "evidence": {
+    "evidence_1": {
+      "type": "parametric knowledge",
+      "id": "evidence_1",
+      "source": "Materials science principles - rule of mixtures",
+      "citation": "Pure Al density: 2.70 g/cm\u00b3; Pure Be density: 1.85 g/cm\u00b3; Rule of mixtures: \u03c1 \u2248 1/(0.98/2.70 + 0.02/1.85) \u2248 2.68 g/cm\u00b3"
+    },
+    "evidence_2": {
+      "type": "reasoning",
+      "id": "evidence_2",
+      "source": "thought_3",
+      "citation": "Pure Al: 2.70 g/cm\u00b3. With 2 wt% Be (\u03c1_Be = 1.85 g/cm\u00b3), rule of mixtures gives ~2.68 g/cm\u00b3. Claimed 2.7 g/cc is entirely consistent"
+    },
+    "evidence_3": {
+      "type": "parametric knowledge",
+      "id": "evidence_3",
+      "source": "thought_3",
+      "citation": "Typical Al alloys: 70-700 MPa depending on alloy and temper. High-strength Al alloys (7xxx series): 400-600 MPa. 500 MPa is within the range for high-strength Al alloys"
+    },
+    "evidence_4": {
+      "type": "parametric knowledge",
+      "id": "evidence_4",
+      "source": "Materials science - homologous temperature",
+      "citation": "Aluminum melting point: 660.3\u00b0C. At 650\u00b0C (923 K), homologous temperature T/T_melt = 923K/933K = 0.989 (99% of melting point). At this temperature aluminum experiences extreme diffusion, grain boundary sliding, and creep"
+    },
+    "evidence_5": {
+      "type": "web search",
+      "id": "evidence_5",
+      "source": "https://aluminium-guide.com/aluminium-elevated-temperatures/",
+      "citation": "Above 300\u00b0C these alloys lose signifcant strength."
+    },
+    "evidence_6": {
+      "type": "web search",
+      "id": "evidence_6",
+      "source": "https://www.materion.com/en/products/performance-materials/metal-matrix-composites/albemet-albecast",
+      "citation": "Thermal stability over temperature ranges from -50\u00baC to 150\u00baC"
+    },
+    "evidence_7": {
+      "type": "web search",
+      "id": "evidence_7",
+      "source": "https://ntrs.nasa.gov/api/citations/20030106419/downloads/20030106419.pdf",
+      "citation": "The ultimate tensile and yield strengths for extruded AlBeMetl62 material increased with decreasing temperature, and the percent elongation decreased with decreasing temperature."
+    }
+  }
+}

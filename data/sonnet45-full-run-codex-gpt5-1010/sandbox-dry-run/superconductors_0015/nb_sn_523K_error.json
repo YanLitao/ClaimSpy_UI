@@ -1,0 +1,15 @@
+{
+  "database": "/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB",
+  "temperature_K": 523.0,
+  "pressure_Pa": 101325,
+  "components": [
+    "NB",
+    "SN",
+    "VA"
+  ],
+  "error": "Database lacks an A15/NB3Sn phase with Sn among constituents. Cannot assess Nb3Sn stability.",
+  "a15_like_phases_found": [
+    "CR3SI_A15",
+    "CUB_A15"
+  ]
+}

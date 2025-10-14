@@ -1,0 +1,95 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "superconductors_0012",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "default-upenn-run",
+  "likert_score": 1,
+  "continuous_score": 0.92,
+  "confidence": 0.7,
+  "wall_clock_time": 337.22358202934265,
+  "explanation": [
+    {
+      "text": "The claim that A15 Nb\u2083Si prepared by rapid quenching has higher Tc than tetragonal Nb\u2083Si is strongly supported at ambient pressure. Multiple literature sources confirm A15 Nb\u2083Si exhibits Tc \u2248 18-18.5 K at ambient conditions, while tetragonal Nb\u2083Si is characterized as having 'essentially no superconductivity' at these temperatures, indicating a difference of at least 15 K.",
+      "evidence": [
+        "obs0_source1",
+        "obs0_source2",
+        "obs2_source3"
+      ]
+    },
+    {
+      "text": "The synthesis route via rapid quenching (melt-spinning on rotating copper wheel) is confirmed in the literature. Sources document that A15 Nb\u2083Si can be produced from tetragonal precursors using explosive compression and rapid quenching methods, validating the preparation claim.",
+      "evidence": [
+        "obs2_source2",
+        "obs2_source3"
+      ]
+    },
+    {
+      "text": "Under high pressure, A15 Nb\u2083Si maintains measurable superconductivity with Tc decreasing from 18 K at ambient to approximately 5.2 K at 88 GPa. The pressure dependence follows a linear relationship with \u2202Tc/\u2202P = -2.67\u00d710\u207b\u2075 K/bar in the 0-20 kbar range.",
+      "evidence": [
+        "obs0_source1",
+        "obs0_source2"
+      ]
+    },
+    {
+      "text": "For the tetragonal phase under pressure, explicit Tc(P) values are not tabulated in the literature. However, high-pressure studies up to 120 GPa on tetragonal Nb\u2083Si report no superconducting transitions, providing negative evidence that supports A15 superiority across the pressure range.",
+      "evidence": [
+        "obs1_source1",
+        "obs2_source1"
+      ]
+    },
+    {
+      "text": "The universal quantifier 'regardless of pressure' is supported primarily through inference: (1) overwhelming A15 superiority at ambient pressure, (2) continued A15 superconductivity under extreme pressure, and (3) absence of any literature reports of competitive tetragonal Tc at any pressure despite experimental investigation. This constitutes strong but indirect evidence rather than comprehensive explicit Tc(P) data for both phases.",
+      "evidence": [
+        "obs0_source3",
+        "obs1_source1",
+        "obs2_source3"
+      ]
+    }
+  ],
+  "evidence": {
+    "obs0_source1": {
+      "type": "web search",
+      "id": "obs0_source1",
+      "source": "https://link.springer.com/article/10.1007/BF00654500",
+      "citation": "For 0\u2264P\u226420 kbar (2 GPa), Tc decrease linearly with increasing pressure at a rate \u2202Tc/\u2202P=\u22122.67\u00d710\u22125 K/bar."
+    },
+    "obs0_source2": {
+      "type": "web search",
+      "id": "obs0_source2",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/33647891/",
+      "citation": "Diamond anvil cell pressure measurements up to 88 GPa were performed on explosively compressed A15 Nb3Si material to trace Tc as a function of pressure. Tc is suppressed to \u223c5.2 K at 88 GPa."
+    },
+    "obs0_source3": {
+      "type": "web search",
+      "id": "obs0_source3",
+      "source": "https://arxiv.org/pdf/1505.06393",
+      "citation": "Attempts were made to produce - via explosive compression - higher (theorized to be 31-35 K) transition temperatures in not-stable-at-ambient-conditions A15 Nb3Si. However, the effort to continue the march to higher Tc's in A15 Nb3Si only resulted in a defect-suppressed Tc of 19 K by 1981."
+    },
+    "obs1_source1": {
+      "type": "web search",
+      "id": "obs1_source1",
+      "source": "https://meetings.aps.org/Meeting/MAR21/Session/S23.9",
+      "citation": "Using these Tc (P) data for A15 Nb3Si, applying pressures up to 120 GPa at room temperature on tetragonal Nb3Si and measuring superconductivity present via resistivity gave no indication of any transition to the A15 structure."
+    },
+    "obs2_source1": {
+      "type": "web search",
+      "id": "obs2_source1",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/33647891/",
+      "citation": "This is in contrast to the explosive compression (up to P\u223c 110 GPa) of tetragonal Nb3Si, which produced 50%-70% A15 material, Tc= 18 K at ambient pressure, in a 1981 Los Alamos National Laboratory experiment."
+    },
+    "obs2_source2": {
+      "type": "web search",
+      "id": "obs2_source2",
+      "source": "https://www.osti.gov/biblio/6343342",
+      "citation": "Superconducting Nb3Si has been made by the explosive compression of the high temperature, equilibrium tetragonal Ti3P phase, confirming the work of Pan and his associates at Kiev. The material has a broad superconducting transition with an onset Tc \u2248 18K and a midpoint \u2248 16K."
+    },
+    "obs2_source3": {
+      "type": "web search",
+      "id": "obs2_source3",
+      "source": "https://arxiv.org/pdf/1505.06393",
+      "citation": "Nb3Si (which forms out of the melt in the tetragonal Ti3P type structure) in the denser (unit cell volume is smaller by 2.8%) A15 structure. In 1981, Olinger and Newkirk succeeded, using explosive compression at 1 Mbar, in making a sample consisting of 50-70% A15 Nb3Si, a0=5.091 \u00b1 0.006 \u00c5, with an inductive transition at 18.5 K and a bulk discontinuity (C/Tc=2.0) starting at 18.0 K in the specific heat."
+    }
+  }
+}
