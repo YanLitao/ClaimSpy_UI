@@ -27,6 +27,8 @@ SCRIPT_DIR = Path(__file__).parent.absolute()
 PROJECT_ROOT = SCRIPT_DIR.parent
 DATA_BASE_PATH = PROJECT_ROOT / 'data' / \
     'sonnet45-full-run-codex-gpt5-1010' / 'output' / 'dry-run'
+SANDBOX_BASE_PATH = PROJECT_ROOT / 'data' / \
+    'sonnet45-full-run-codex-gpt5-1010'
 STATIC_BASE_PATH = SCRIPT_DIR
 PORT = 8080
 
@@ -36,6 +38,18 @@ ALLOWED_DATA_FILES = {
     'trajectory.json',
     'mapping.json',
     'likert_score_prediction.json'
+}
+
+# Allowed simulation file extensions
+ALLOWED_SIMULATION_EXTENSIONS = {'.csv', '.json', '.py'}
+
+# Sandbox directory mapping
+SANDBOX_MAPPING = {
+    'dry-run': 'sandbox-dry-run',
+    'drop1': 'sandbox-drop1',
+    'drop2': 'sandbox-drop2',
+    'drop4': 'sandbox-drop4',
+    'continuous-release': 'sandbox-continuous-release'
 }
 
 # Setup logging
@@ -64,16 +78,17 @@ class APIHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed_url.query)
 
         try:
-            if path == '/api/folders':
+            if parsed_url.path == '/api/folders':
                 self.handle_get_folders()
-            elif path.startswith('/api/data/'):
-                self.handle_get_data(path)
-            elif path == '/api/health':
-                self.handle_health_check()
+            elif parsed_url.path.startswith('/api/data/'):
+                self.handle_get_data(parsed_url.path)
+            elif parsed_url.path.startswith('/api/simulation-files/'):
+                self.handle_get_simulation_files(parsed_url.path)
+            elif parsed_url.path.startswith('/api/simulation-file/'):
+                self.handle_get_simulation_file(parsed_url.path)
             else:
                 # Serve static files
-                self.serve_static_file(path)
-
+                self.serve_static_file(parsed_url.path)
         except Exception as e:
             logging.error(f"Error handling request {path}: {e}")
             self.send_error(500, f"Internal server error: {e}")
@@ -212,6 +227,155 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_error(500, f"File encoding error: {e}")
         except Exception as e:
             logging.error(f"Error reading data file {path}: {e}")
+            self.send_error(500, f"Error reading file: {e}")
+
+    def handle_get_simulation_files(self, path):
+        """Handle simulation files list requests like /api/simulation-files/dry-run/alloys_0003"""
+        try:
+            # Extract run_type and folder from path
+            # Path format: /api/simulation-files/{run_type}/{folder}
+            path_parts = path.strip('/').split('/')
+            if len(path_parts) != 4 or path_parts[0] != 'api' or path_parts[1] != 'simulation-files':
+                logging.warning(
+                    f"Invalid simulation files path format: {path}")
+                self.send_error(
+                    400, "Invalid path format. Expected: /api/simulation-files/{run_type}/{folder}")
+                return
+
+            run_type = path_parts[2]
+            folder = path_parts[3]
+
+            # Validate run_type
+            if run_type not in SANDBOX_MAPPING:
+                logging.warning(f"Invalid run type: {run_type}")
+                self.send_error(
+                    400, f"Invalid run type. Allowed: {list(SANDBOX_MAPPING.keys())}")
+                return
+
+            # Validate folder name
+            if not folder.replace('_', '').replace('-', '').isalnum():
+                logging.warning(f"Invalid folder name: {folder}")
+                self.send_error(400, "Invalid folder name")
+                return
+
+            # Construct sandbox path
+            sandbox_dir = SANDBOX_MAPPING[run_type]
+            sandbox_path = Path(SANDBOX_BASE_PATH) / sandbox_dir / folder
+
+            if not sandbox_path.exists():
+                logging.info(f"Sandbox folder not found: {sandbox_path}")
+                self.send_error(
+                    404, f"Sandbox folder not found: {sandbox_dir}/{folder}")
+                return
+
+            # Get list of allowed simulation files
+            files = []
+            for file_path in sandbox_path.iterdir():
+                if file_path.is_file() and file_path.suffix in ALLOWED_SIMULATION_EXTENSIONS:
+                    files.append({
+                        'name': file_path.name,
+                        'size': file_path.stat().st_size,
+                        'extension': file_path.suffix
+                    })
+
+            # Sort by name
+            files.sort(key=lambda x: x['name'])
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_cors_headers()
+            self.end_headers()
+
+            response = {'files': files}
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            logging.info(
+                f"Served {len(files)} simulation files for {run_type}/{folder}")
+
+        except Exception as e:
+            logging.error(f"Error getting simulation files {path}: {e}")
+            self.send_error(500, f"Error reading simulation files: {e}")
+
+    def handle_get_simulation_file(self, path):
+        """Handle individual simulation file requests like /api/simulation-file/dry-run/alloys_0003/file.csv"""
+        try:
+            # Extract run_type, folder, and filename from path
+            # Path format: /api/simulation-file/{run_type}/{folder}/{filename}
+            path_parts = path.strip('/').split('/')
+            if len(path_parts) != 5 or path_parts[0] != 'api' or path_parts[1] != 'simulation-file':
+                logging.warning(f"Invalid simulation file path format: {path}")
+                self.send_error(
+                    400, "Invalid path format. Expected: /api/simulation-file/{run_type}/{folder}/{filename}")
+                return
+
+            run_type = path_parts[2]
+            folder = path_parts[3]
+            filename = path_parts[4]
+
+            # Validate run_type
+            if run_type not in SANDBOX_MAPPING:
+                logging.warning(f"Invalid run type: {run_type}")
+                self.send_error(
+                    400, f"Invalid run type. Allowed: {list(SANDBOX_MAPPING.keys())}")
+                return
+
+            # Validate folder and filename
+            if not folder.replace('_', '').replace('-', '').isalnum():
+                logging.warning(f"Invalid folder name: {folder}")
+                self.send_error(400, "Invalid folder name")
+                return
+
+            # Check file extension
+            file_ext = Path(filename).suffix
+            if file_ext not in ALLOWED_SIMULATION_EXTENSIONS:
+                logging.warning(f"Disallowed file extension: {file_ext}")
+                self.send_error(
+                    400, f"File extension not allowed. Allowed: {list(ALLOWED_SIMULATION_EXTENSIONS)}")
+                return
+
+            # Construct file path
+            sandbox_dir = SANDBOX_MAPPING[run_type]
+            file_path = Path(SANDBOX_BASE_PATH) / \
+                sandbox_dir / folder / filename
+
+            # Security check: ensure path is within sandbox
+            try:
+                file_path.resolve().relative_to(Path(SANDBOX_BASE_PATH).resolve())
+            except ValueError:
+                logging.error(f"Path traversal attempt: {file_path}")
+                self.send_error(403, "Access denied")
+                return
+
+            if not file_path.exists():
+                logging.info(f"Simulation file not found: {file_path}")
+                self.send_error(404, f"File not found: {filename}")
+                return
+
+            # Determine content type and read file
+            content_type = 'text/plain; charset=utf-8'
+            if file_ext == '.json':
+                content_type = 'application/json; charset=utf-8'
+            elif file_ext == '.csv':
+                content_type = 'text/csv; charset=utf-8'
+            elif file_ext == '.py':
+                content_type = 'text/x-python; charset=utf-8'
+
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            self.send_response(200)
+            self.send_header('Content-Type', content_type)
+            self.send_cors_headers()
+            self.end_headers()
+
+            self.wfile.write(content.encode('utf-8'))
+            logging.info(
+                f"Served simulation file: {run_type}/{folder}/{filename}")
+
+        except UnicodeDecodeError:
+            logging.error(f"Encoding error in file {file_path}")
+            self.send_error(500, "File encoding error")
+        except Exception as e:
+            logging.error(f"Error reading simulation file {path}: {e}")
             self.send_error(500, f"Error reading file: {e}")
 
     def serve_static_file(self, path):

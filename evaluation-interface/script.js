@@ -337,6 +337,198 @@ function getEvidenceTypeClass(type) {
     return typeMap[lowerType] || 'web-search'; // default to web-search style
 }
 
+// Get run type from current folder selection
+function getRunTypeFromCurrentFolder() {
+    const dropdown = document.getElementById('folderDropdown');
+    const selectedFolder = dropdown.value;
+    if (!selectedFolder) return null;
+
+    // For now, all folders in the current data directory are from dry-run
+    // In the future, this could be made more dynamic by including run type info in the API response
+    return 'dry-run';
+}
+
+// Get problem folder name from current selection
+function getProblemFolderFromCurrentFolder() {
+    const dropdown = document.getElementById('folderDropdown');
+    const selectedFolder = dropdown.value;
+    return selectedFolder; // The dropdown value is already the problem folder name
+}
+
+// Load simulation files for a given evidence item
+async function loadSimulationFiles(evidenceId) {
+    const runType = getRunTypeFromCurrentFolder();
+    const problemFolder = getProblemFolderFromCurrentFolder();
+
+    if (!runType || !problemFolder) {
+        console.error('Cannot determine run type or problem folder');
+        return [];
+    }
+
+    try {
+        const response = await fetch(`/api/simulation-files/${runType}/${problemFolder}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.log(`No simulation files found for ${runType}/${problemFolder}`);
+                return [];
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.files || [];
+    } catch (error) {
+        console.error('Error loading simulation files:', error);
+        return [];
+    }
+}
+
+// Display simulation file content in right panel
+async function showSimulationFile(filename) {
+    const runType = getRunTypeFromCurrentFolder();
+    const problemFolder = getProblemFolderFromCurrentFolder();
+
+    if (!runType || !problemFolder) {
+        console.error('Cannot determine run type or problem folder');
+        return;
+    }
+
+    // Show right panel
+    const rightPanel = document.getElementById('rightPanel');
+    if (!rightPanel.classList.contains('expanded')) {
+        rightPanel.classList.add('expanded');
+    }
+
+    // Show loading state
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const readingModeViewer = document.getElementById('readingModeViewer');
+    const webpageViewer = document.getElementById('webpageViewer');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+
+    loadingOverlay.style.display = 'flex';
+    readingModeViewer.style.display = 'none';
+    webpageViewer.style.display = 'none';
+    welcomeMessage.style.display = 'none';
+
+    try {
+        const response = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${filename}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const content = await response.text();
+        const contentType = response.headers.get('content-type') || '';
+
+        // Determine file type for proper display
+        let displayContent = content;
+        let language = 'text';
+
+        if (filename.endsWith('.json')) {
+            try {
+                const jsonData = JSON.parse(content);
+                displayContent = JSON.stringify(jsonData, null, 2);
+                language = 'json';
+            } catch (e) {
+                // If JSON parsing fails, display as text
+                language = 'text';
+            }
+        } else if (filename.endsWith('.py')) {
+            language = 'python';
+        } else if (filename.endsWith('.csv')) {
+            language = 'csv';
+        }
+
+        // Display in reading mode viewer
+        readingModeViewer.innerHTML = `
+            <div class="source-info">
+                <div class="source-title">Simulation File: ${filename}</div>
+                <div style="margin-top: 0.5rem; font-style: italic; color: #666;">
+                    Location: ${runType}/${problemFolder}/${filename}
+                </div>
+            </div>
+            <div class="content-display" style="margin-top: 1rem;">
+                <pre><code class="language-${language}">${displayContent}</code></pre>
+            </div>
+        `;
+
+        readingModeViewer.style.display = 'block';
+
+    } catch (error) {
+        console.error('Error loading simulation file:', error);
+        readingModeViewer.innerHTML = `
+            <div class="source-info">
+                <div class="source-title">Error Loading File</div>
+            </div>
+            <div class="error-content" style="margin-top: 1rem; padding: 1rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c33;">
+                Failed to load ${filename}: ${error.message}
+            </div>
+        `;
+        readingModeViewer.style.display = 'block';
+    } finally {
+        loadingOverlay.style.display = 'none';
+    }
+}
+
+// Load simulation files for all simulation evidence items
+async function loadSimulationFilesForEvidence() {
+    if (!evidenceData) return;
+
+    const simulationEvidence = Object.keys(evidenceData).filter(evidenceId => {
+        const evidence = evidenceData[evidenceId];
+        return evidence && evidence.type && evidence.type.toLowerCase().includes('simulation');
+    });
+
+    for (const evidenceId of simulationEvidence) {
+        const simulationFilesSection = document.getElementById(`simFiles${evidenceId}`);
+        if (!simulationFilesSection) continue;
+
+        try {
+            const files = await loadSimulationFiles(evidenceId);
+            const loadingDiv = simulationFilesSection.querySelector('.simulation-files-loading');
+
+            if (files.length === 0) {
+                loadingDiv.textContent = 'No simulation files found';
+                loadingDiv.style.color = '#999';
+                continue;
+            }
+
+            // Create file boxes
+            const fileBoxesHtml = files.map(file => {
+                return `
+                    <div class="simulation-file-box" onclick="event.stopPropagation(); showSimulationFile('${file.name}')" 
+                         style="display: inline-block; margin: 2px; padding: 6px 10px; background: #f8f9fa; 
+                                border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+                                transition: background-color 0.2s;"
+                         onmouseover="this.style.backgroundColor='#e9ecef'" 
+                         onmouseout="this.style.backgroundColor='#f8f9fa'"
+                         title="View ${file.name} (${formatFileSize(file.size)})">
+                        ${file.name}
+                    </div>
+                `;
+            }).join('');
+
+            loadingDiv.innerHTML = fileBoxesHtml;
+
+        } catch (error) {
+            console.error(`Error loading simulation files for ${evidenceId}:`, error);
+            const loadingDiv = simulationFilesSection.querySelector('.simulation-files-loading');
+            loadingDiv.textContent = 'Error loading files';
+            loadingDiv.style.color = '#c33';
+        }
+    }
+}
+
+
+
+// Format file size for display
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 // Display claim
 function displayClaim(claim) {
     const claimElement = document.getElementById('claimText');
@@ -443,6 +635,12 @@ function displayExplanations(explanations) {
                                     </button>
                                 ` : ''}
                             </div>
+                            ${evidence.type && evidence.type.toLowerCase().includes('simulation') ? `
+                                <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
+                                    <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
+                                    <div class="simulation-files-loading" style="color: #999; font-style: italic;">Loading files...</div>
+                                </div>
+                            ` : ''}
                         `;
         }).join('')}
                 </div>
@@ -454,6 +652,9 @@ function displayExplanations(explanations) {
 
     // Update AI button texts to show API key status
     updateAIButtonTexts();
+
+    // Load simulation files for simulation evidence
+    loadSimulationFilesForEvidence();
 }
 
 // Reset API key function
