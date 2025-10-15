@@ -28,7 +28,7 @@
         <!-- Left Panel - JSON Context -->
         <div class="left-panel" id="leftPanel">
             <div class="left-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>JSON Reference</h3>
+                <h3>JSON Data</h3>
                 <button onclick="closeLeftPanel()"
                     style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #666;">✕</button>
             </div>
@@ -40,8 +40,8 @@
             </div>
         </div>
 
-        <!-- Toggle button for left panel -->
-        <button class="toggle-left" onclick="toggleLeftPanel()">JSON</button>
+        <!-- Left Panel Resizer -->
+        <div class="resize-handle left-resize" id="leftResizer"></div>
 
         <!-- Main Panel -->
         <div class="main-panel">
@@ -87,11 +87,11 @@
             </div>
         </div>
 
+        <!-- Right Panel Resizer -->
+        <div class="resize-handle right-resize" id="rightResizer"></div>
+
         <!-- Right Panel - Evidence -->
         <div class="right-panel" id="rightPanel">
-            <button class="toggle-right" id="toggleRight" onclick="toggleRightPanel()">
-                Content View
-            </button>
             <div class="right-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>Source Content Analysis</h3>
                 <button onclick="closeRightPanel()"
@@ -114,6 +114,8 @@
     <script src="config.js"></script>
     <script src="local-config.js" onerror="console.log('No local config found - using default settings')"></script>
     <script src="script.js"></script>
+    <script src="pdf_controls.js"></script>
+    <script src="panel_resize.js"></script>
 </body>
 
 </html>

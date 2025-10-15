@@ -376,14 +376,33 @@ async function loadSimulationFiles(evidenceId) {
         }
 
         const data = await response.json();
-        return data.files || [];
+        const allFiles = data.files || [];
+
+        // Only return data files (CSV, JSON, PY), PNG files are handled as visualizations
+        const dataFiles = allFiles.filter(file => ['.csv', '.json', '.py'].includes(file.extension));
+        const pngFiles = allFiles.filter(file => file.extension === '.png');
+
+        // Associate PNG files with their corresponding data files
+        const filesWithVisualizations = dataFiles.map(file => {
+            const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+            const correspondingPng = pngFiles.find(png => {
+                const pngBaseName = png.name.replace(/\.[^/.]+$/, '');
+                return pngBaseName === baseName;
+            });
+
+            return {
+                ...file,
+                hasVisualization: !!correspondingPng,
+                visualizationFile: correspondingPng?.name
+            };
+        });
+
+        return filesWithVisualizations;
     } catch (error) {
         console.error('Error loading simulation files:', error);
         return [];
     }
-}
-
-// Display simulation file content in right panel
+}// Display simulation file content in right panel
 async function showSimulationFile(filename) {
     const runType = getRunTypeFromCurrentFolder();
     const problemFolder = getProblemFolderFromCurrentFolder();
@@ -417,25 +436,66 @@ async function showSimulationFile(filename) {
         }
 
         const content = await response.text();
-        const contentType = response.headers.get('content-type') || '';
 
-        // Determine file type for proper display
-        let displayContent = content;
-        let language = 'text';
+        // Check if there's a corresponding visualization (PNG file)
+        const baseName = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+        const visualizationFilename = `${baseName}.png`;
 
-        if (filename.endsWith('.json')) {
-            try {
-                const jsonData = JSON.parse(content);
-                displayContent = JSON.stringify(jsonData, null, 2);
-                language = 'json';
-            } catch (e) {
-                // If JSON parsing fails, display as text
-                language = 'text';
+        console.log(`Looking for visualization: ${visualizationFilename} for file: ${filename}`);
+
+        let visualizationHtml = '';
+        try {
+            const vizResponse = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${visualizationFilename}`);
+            console.log(`Visualization response status: ${vizResponse.status} for ${visualizationFilename}`);
+
+            if (vizResponse.ok) {
+                console.log(`✅ Found visualization: ${visualizationFilename}`);
+                // PNG file exists, create image element
+                visualizationHtml = `
+                    <div class="visualization-section" style="margin-bottom: 2rem;">
+                        <h4 style="color: #2c3e50; margin-bottom: 1rem;">📊 Visualization</h4>
+                        <div style="text-align: center; background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <img src="/api/simulation-file/${runType}/${problemFolder}/${visualizationFilename}" 
+                                 alt="Visualization for ${filename}" 
+                                 style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                        </div>
+                    </div>
+                `;
+            } else {
+                console.log(`❌ No visualization found: ${vizResponse.status} for ${visualizationFilename}`);
             }
-        } else if (filename.endsWith('.py')) {
-            language = 'python';
-        } else if (filename.endsWith('.csv')) {
-            language = 'csv';
+        } catch (vizError) {
+            // No visualization available, continue without it
+            console.log(`❌ Error fetching visualization for ${filename}:`, vizError);
+        }
+
+        let contentHtml = '';
+
+        if (filename.endsWith('.csv')) {
+            // Parse and display CSV as a table
+            contentHtml = formatCsvAsTable(content, filename);
+        } else {
+            // Handle other file types
+            let displayContent = content;
+            let language = 'text';
+
+            if (filename.endsWith('.json')) {
+                try {
+                    const jsonData = JSON.parse(content);
+                    displayContent = JSON.stringify(jsonData, null, 2);
+                    language = 'json';
+                } catch (e) {
+                    language = 'text';
+                }
+            } else if (filename.endsWith('.py')) {
+                language = 'python';
+            }
+
+            contentHtml = `
+                <div class="content-display">
+                    <pre><code class="language-${language}">${displayContent}</code></pre>
+                </div>
+            `;
         }
 
         // Display in reading mode viewer
@@ -446,8 +506,9 @@ async function showSimulationFile(filename) {
                     Location: ${runType}/${problemFolder}/${filename}
                 </div>
             </div>
-            <div class="content-display" style="margin-top: 1rem;">
-                <pre><code class="language-${language}">${displayContent}</code></pre>
+            <div style="margin-top: 1rem;">
+                ${visualizationHtml}
+                ${contentHtml}
             </div>
         `;
 
@@ -469,7 +530,96 @@ async function showSimulationFile(filename) {
     }
 }
 
-// Load simulation files for all simulation evidence items
+// Format CSV content as an HTML table
+function formatCsvAsTable(csvContent, filename) {
+    try {
+        const lines = csvContent.trim().split('\n');
+        if (lines.length === 0) {
+            return '<p>Empty CSV file</p>';
+        }
+
+        // Parse CSV headers
+        const headers = parseCsvLine(lines[0]);
+
+        let tableHtml = `
+            <div class="csv-table-container">
+                <h4 style="color: #2c3e50; margin-bottom: 1rem;">📋 Data Table</h4>
+                <div style="overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+        `;
+
+        // Add headers
+        headers.forEach(header => {
+            tableHtml += `<th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">${header}</th>`;
+        });
+
+        tableHtml += '</tr></thead><tbody>';
+
+        // Add data rows
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i].trim()) {
+                const cells = parseCsvLine(lines[i]);
+                const rowStyle = i % 2 === 0 ? 'background: #f8f9fa;' : 'background: white;';
+                tableHtml += `<tr style="${rowStyle}">`;
+
+                cells.forEach((cell, index) => {
+                    const cellContent = cell || '-';
+                    const isNumeric = !isNaN(cell) && cell !== '';
+                    const textAlign = isNumeric ? 'text-align: right;' : 'text-align: left;';
+                    tableHtml += `<td style="padding: 0.75rem; border-bottom: 1px solid #dee2e6; ${textAlign}">${cellContent}</td>`;
+                });
+
+                tableHtml += '</tr>';
+            }
+        }
+
+        tableHtml += `
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                Rows: ${lines.length - 1} | Columns: ${headers.length}
+            </div>
+        </div>
+        `;
+
+        return tableHtml;
+
+    } catch (error) {
+        console.error('Error parsing CSV:', error);
+        return `
+            <div class="content-display">
+                <h4 style="color: #2c3e50; margin-bottom: 1rem;">📋 Raw CSV Content</h4>
+                <pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1rem; overflow-x: auto; white-space: pre-wrap;">${csvContent}</pre>
+            </div>
+        `;
+    }
+}
+
+// Simple CSV line parser (handles basic cases)
+function parseCsvLine(line) {
+    const result = [];
+    let current = '';
+    let isInQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            isInQuotes = !isInQuotes;
+        } else if (char === ',' && !isInQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    result.push(current.trim());
+    return result;
+}// Load simulation files for all simulation evidence items
 async function loadSimulationFilesForEvidence() {
     if (!evidenceData) return;
 
@@ -492,8 +642,13 @@ async function loadSimulationFilesForEvidence() {
                 continue;
             }
 
-            // Create file boxes
+            // Create file boxes (only show data files, not PNG visualizations)
             const fileBoxesHtml = files.map(file => {
+                const visualizationIndicator = file.hasVisualization ? ' 📊' : '';
+                const tooltipText = file.hasVisualization ?
+                    `View ${file.name} with visualization (${formatFileSize(file.size)})` :
+                    `View ${file.name} (${formatFileSize(file.size)})`;
+
                 return `
                     <div class="simulation-file-box" onclick="event.stopPropagation(); showSimulationFile('${file.name}')" 
                          style="display: inline-block; margin: 2px; padding: 6px 10px; background: #f8f9fa; 
@@ -501,8 +656,8 @@ async function loadSimulationFilesForEvidence() {
                                 transition: background-color 0.2s;"
                          onmouseover="this.style.backgroundColor='#e9ecef'" 
                          onmouseout="this.style.backgroundColor='#f8f9fa'"
-                         title="View ${file.name} (${formatFileSize(file.size)})">
-                        ${file.name}
+                         title="${tooltipText}">
+                        ${file.name}${visualizationIndicator}
                     </div>
                 `;
             }).join('');
@@ -622,18 +777,19 @@ function displayExplanations(explanations) {
                                 <div class="evidence-header">
                                     <span class="evidence-type ${getEvidenceTypeClass(evidence.type)}">${evidence.type || 'Unknown'}</span>
                                 </div>
-                                <div class="evidence-citation">${evidence.citation}</div>
-                                ${hasValidUrl ? `
-                                    <button class="ai-assist-btn" onclick="event.stopPropagation(); jumpToKeyPassage('${evidenceId}', '${explanation.text}')" id="jumpBtn${evidenceId}" title="Analyze source content and find relevant passages">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <div class="evidence-citation-row">
+                                    <div class="evidence-citation">${evidence.citation}</div>
+                                    <button class="local-file-btn" onclick="event.stopPropagation(); viewLocalEvidence('${evidenceId}')" id="localBtn${evidenceId}" title="View local evidence file">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                             <polyline points="14,2 14,8 20,8"></polyline>
                                             <line x1="16" y1="13" x2="8" y2="13"></line>
                                             <line x1="16" y1="17" x2="8" y2="17"></line>
                                             <polyline points="10,9 9,9 8,9"></polyline>
                                         </svg>
+                                        📄
                                     </button>
-                                ` : ''}
+                                </div>
                             </div>
                             ${evidence.type && evidence.type.toLowerCase().includes('simulation') ? `
                                 <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
@@ -650,28 +806,23 @@ function displayExplanations(explanations) {
         container.appendChild(explanationEl);
     });
 
-    // Update AI button texts to show API key status
-    updateAIButtonTexts();
+    // Update local file button texts
+    updateLocalFileButtonTexts();
 
     // Load simulation files for simulation evidence
     loadSimulationFilesForEvidence();
 }
 
-// Reset API key function
+// Reset API key function (kept for compatibility)
 function resetApiKey() {
-    userApiKey = null;
-    apiKeyRemembered = false;
-    updateAIButtonTexts();
-    alert('API key has been cleared. You will be prompted to enter it again when using AI features.');
+    alert('API functionality has been replaced with local file viewing.');
 }
 
-// Update AI button texts to show API key status
-function updateAIButtonTexts() {
-    // Update button titles to show API key status
-    document.querySelectorAll('.ai-assist-btn').forEach(btn => {
-        if (btn.querySelector('svg')) {
-            btn.title = `Analyze source content and find relevant passages${apiKeyRemembered ? '' : ' (requires API key)'}`;
-        }
+// Update local file button texts
+function updateLocalFileButtonTexts() {
+    // Update button titles for local file viewing
+    document.querySelectorAll('.local-file-btn').forEach(btn => {
+        btn.title = 'View local evidence file';
     });
 }
 
@@ -878,156 +1029,7 @@ function highlightActiveEvidence(evidenceId) {
     }
 }
 
-// Jump to key passage using Chrome Extension
-async function jumpToKeyPassage(evidenceId, explanationText) {
-    const evidence = evidenceData[evidenceId];
-    if (!evidence || !evidence.source) {
-        alert('No source available for this evidence.');
-        return;
-    }
 
-    // Highlight the active evidence item
-    highlightActiveEvidence(evidenceId);
-
-    // Show loading state in right panel
-    const rightPanel = document.getElementById('rightPanel');
-    if (!rightPanel.classList.contains('expanded')) {
-        toggleRightPanel();
-    }
-
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const readingModeViewer = document.getElementById('readingModeViewer');
-    const webpageViewer = document.getElementById('webpageViewer');
-    const welcomeMessage = document.getElementById('welcomeMessage');
-
-    loadingOverlay.style.display = 'flex';
-    readingModeViewer.style.display = 'none';
-    webpageViewer.style.display = 'none';
-    welcomeMessage.style.display = 'none';
-
-    try {
-        // Check cache first
-        const safeCacheKey = `${evidenceId}-${encodeURIComponent(explanationText).substring(0, 20)}`;
-        if (evidenceCache.has(safeCacheKey)) {
-            console.log('✅ Using cached analysis for evidence:', evidenceId);
-            const cachedResult = evidenceCache.get(safeCacheKey);
-            displayReadingMode(cachedResult, evidence, true);
-            loadingOverlay.style.display = 'none';
-            return;
-        }
-
-        // Get OpenAI API key
-        const openaiApiKey = await getOpenAIApiKey();
-        if (!openaiApiKey) {
-            showErrorInReadingMode('OpenAI API key is required for content analysis.');
-            loadingOverlay.style.display = 'none';
-            return;
-        }
-
-        console.log('🚀 Attempting to use Chrome Extension for analysis...');
-
-        // Try to communicate with Chrome Extension
-        const extensionResult = await analyzeWithChromeExtension(
-            explanationText,
-            evidence.citation,
-            evidence.source,
-            openaiApiKey
-        );
-
-        if (extensionResult && extensionResult.success) {
-            console.log('✅ Chrome Extension analysis successful');
-
-            // Cache the result
-            evidenceCache.set(safeCacheKey, extensionResult.result);
-
-            // Display result with extension info
-            displayReadingMode(extensionResult.result, evidence, false, {
-                useExtension: true,
-                tabId: extensionResult.tabId
-            });
-        } else {
-            console.log('❌ Chrome Extension failed, falling back to web scraping...');
-            // Fallback to original web scraping method
-            await fallbackToWebScraping(evidenceId, explanationText, evidence, openaiApiKey, safeCacheKey);
-        }
-
-    } catch (error) {
-        console.error('❌ Error in jumpToKeyPassage:', error);
-        console.log('🔄 Falling back to web scraping...');
-        try {
-            await fallbackToWebScraping(evidenceId, explanationText, evidence, await getOpenAIApiKey(), safeCacheKey);
-        } catch (fallbackError) {
-            showErrorInReadingMode(`Error analyzing content: ${fallbackError.message}`);
-        }
-    } finally {
-        loadingOverlay.style.display = 'none';
-    }
-}
-
-// Analyze using Chrome Extension
-async function analyzeWithChromeExtension(explanation, citation, sourceUrl, apiKey) {
-    try {
-        // Check if extension is available
-        if (typeof chrome === 'undefined' || !chrome.runtime) {
-            throw new Error('Chrome Extension API not available');
-        }
-
-        // Get extension ID (you'll need to update this after installing)
-        const extensionId = 'YOUR_EXTENSION_ID_HERE'; // Will be updated after installation
-
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error('Extension communication timeout'));
-            }, 10000);
-
-            chrome.runtime.sendMessage(extensionId, {
-                action: 'analyzeEvidence',
-                explanation: explanation,
-                citation: citation,
-                sourceUrl: sourceUrl,
-                apiKey: apiKey
-            }, (response) => {
-                clearTimeout(timeout);
-
-                if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError.message));
-                } else if (response && response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response?.error || 'Extension analysis failed'));
-                }
-            });
-        });
-
-    } catch (error) {
-        console.log('Chrome Extension not available:', error.message);
-        throw error;
-    }
-}
-
-// Fallback to original web scraping method
-async function fallbackToWebScraping(evidenceId, explanationText, evidence, openaiApiKey, cacheKey) {
-    console.log('🕷️ Using web scraping fallback...');
-
-    const scrapedContent = await scrapeWebContent(evidence.source);
-    const analysisResult = await analyzeContentWithAI(
-        scrapedContent,
-        explanationText,
-        evidence.citation,
-        openaiApiKey,
-        evidence.source
-    );
-
-    if (analysisResult) {
-        evidenceCache.set(cacheKey, analysisResult);
-        displayReadingMode(analysisResult, evidence, false);
-    } else {
-        showErrorInReadingMode('Unable to analyze the source document. Please install the Chrome Extension for better results.');
-    }
-}
-
-// Web scraping and content analysis functions (truncated for space)
-// ... (Include all the web scraping, AI analysis, and display functions from the original code)
 
 // Update JSON context
 function updateJSONContext(data) {
@@ -1216,25 +1218,58 @@ function showInJsonPanel(basePath, targetKey, index = null) {
 
 // Close left panel
 function closeLeftPanel() {
-    document.getElementById('leftPanel').classList.remove('expanded');
+    const leftPanel = document.getElementById('leftPanel');
+    if (leftPanel) {
+        leftPanel.classList.remove('expanded');
+        // Clear any inline width style that may have been set during resizing
+        leftPanel.style.width = '';
+        console.log('Left panel closed');
+    }
 }
 
 // Close right panel
 function closeRightPanel() {
-    document.getElementById('rightPanel').classList.remove('expanded');
-    // Clear evidence highlighting when panel is closed
-    document.querySelectorAll('.evidence-item.active').forEach(item => {
-        item.classList.remove('active');
-    });
-    // Hide all viewers
-    document.getElementById('readingModeViewer').style.display = 'none';
-    document.getElementById('webpageViewer').style.display = 'none';
-    document.getElementById('welcomeMessage').style.display = 'block';
+    console.log('closeRightPanel called');
+    const rightPanel = document.getElementById('rightPanel');
+    if (rightPanel) {
+        console.log('Current rightPanel classes:', rightPanel.className);
+        rightPanel.classList.remove('expanded');
+        // Clear any inline width style that may have been set during resizing
+        rightPanel.style.width = '';
+        console.log('Right panel closed, new classes:', rightPanel.className);
+
+        // Clear evidence highlighting when panel is closed
+        document.querySelectorAll('.evidence-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // Hide all viewers
+        const readingModeViewer = document.getElementById('readingModeViewer');
+        const webpageViewer = document.getElementById('webpageViewer');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+
+        if (readingModeViewer) readingModeViewer.style.display = 'none';
+        if (webpageViewer) webpageViewer.style.display = 'none';
+        if (welcomeMessage) welcomeMessage.style.display = 'block';
+    } else {
+        console.log('rightPanel element not found');
+    }
 }
+
+// Make close functions globally accessible
+window.closeLeftPanel = closeLeftPanel;
+window.closeRightPanel = closeRightPanel;
 
 // Panel toggles
 function toggleLeftPanel() {
-    document.getElementById('leftPanel').classList.toggle('expanded');
+    const leftPanel = document.getElementById('leftPanel');
+    const wasExpanded = leftPanel.classList.contains('expanded');
+    leftPanel.classList.toggle('expanded');
+
+    // Clear any inline width style when closing
+    if (wasExpanded) {
+        leftPanel.style.width = '';
+    }
 }
 
 function toggleRightPanel() {
@@ -1244,6 +1279,8 @@ function toggleRightPanel() {
 
     // Clear evidence highlighting when panel is closed
     if (wasExpanded) {
+        // Clear any inline width style when closing
+        rightPanel.style.width = '';
         document.querySelectorAll('.evidence-item.active').forEach(item => {
             item.classList.remove('active');
         });
@@ -1745,6 +1782,81 @@ function openInNewTab(url) {
     window.open(url, '_blank');
 }
 
+// View local evidence file
+async function viewLocalEvidence(evidenceId) {
+    try {
+        // Load evidence source mapping
+        const runType = getRunTypeFromCurrentFolder();
+        const problemFolder = getProblemFolderFromCurrentFolder();
+
+        if (!runType || !problemFolder) {
+            showErrorInReadingMode('Cannot determine current folder context');
+            return;
+        }
+
+        // Load evidence_source.json from the same folder as assessment.json
+        const evidenceSourceData = await loadJSONFromAPI(problemFolder, 'evidence_source.json');
+
+        if (!evidenceSourceData || !evidenceSourceData.mappings) {
+            showErrorInReadingMode('No evidence source mapping found');
+            return;
+        }
+
+        const evidenceMapping = evidenceSourceData.mappings[evidenceId];
+        if (!evidenceMapping) {
+            showErrorInReadingMode(`No local file mapping found for evidence: ${evidenceId}`);
+            return;
+        }
+
+        // Show the PDF in the right panel
+        await displayLocalPDF(evidenceMapping, evidenceId);
+
+        // Highlight the active evidence
+        highlightActiveEvidence(evidenceId);
+
+    } catch (error) {
+        console.error('Error loading local evidence:', error);
+        showErrorInReadingMode('Failed to load local evidence file');
+    }
+}
+
+// Show local PDF in the right panel (using pdf_controls.js)
+async function displayLocalPDF(evidenceMapping, evidenceId) {
+    // Call the enhanced PDF viewer from pdf_controls.js
+    // The function in pdf_controls.js handles PDF.js integration and highlighting
+    if (typeof window.showLocalPDF === 'function') {
+        return await window.showLocalPDF(evidenceMapping, evidenceId);
+    } else {
+        console.warn('PDF controls not loaded, falling back to basic PDF viewer');
+        // Fallback implementation
+        const rightPanel = document.getElementById('rightPanel');
+        if (!rightPanel.classList.contains('expanded')) {
+            rightPanel.classList.add('expanded');
+        }
+
+        const readingModeViewer = document.getElementById('readingModeViewer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        const runType = getRunTypeFromCurrentFolder();
+        const problemFolder = getProblemFolderFromCurrentFolder();
+        const pdfPath = `/api/data/${runType}/${problemFolder}/evidences/${evidenceMapping.filename}`;
+
+        readingModeViewer.innerHTML = `
+            <div class="pdf-viewer-container">
+                <h4>📄 ${evidenceMapping.filename}</h4>
+                <embed src="${pdfPath}" type="application/pdf" width="100%" height="600px" />
+            </div>
+        `;
+        readingModeViewer.style.display = 'block';
+        loadingOverlay.style.display = 'none';
+    }
+}
+
+// Open PDF in new tab
+function openPDFInNewTab(pdfPath) {
+    window.open(pdfPath, '_blank');
+}
+
 // Sample data functions for demo purposes
 function getSampleAssessmentData() {
     return {
@@ -1824,3 +1936,4 @@ function getSampleMappingData() {
         }
     };
 }
+

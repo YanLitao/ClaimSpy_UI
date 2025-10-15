@@ -37,11 +37,18 @@ ALLOWED_DATA_FILES = {
     'assessment.json',
     'trajectory.json',
     'mapping.json',
-    'likert_score_prediction.json'
+    'likert_score_prediction.json',
+    'evidence_source.json'
 }
 
 # Allowed simulation file extensions
-ALLOWED_SIMULATION_EXTENSIONS = {'.csv', '.json', '.py'}
+ALLOWED_SIMULATION_EXTENSIONS = {'.csv', '.json', '.py', '.png'}
+
+# Allowed evidence file extensions
+ALLOWED_EVIDENCE_EXTENSIONS = {'.pdf', '.png', '.jpg', '.jpeg', '.txt', '.csv'}
+
+# PDF.js viewer path
+PDFJS_VIEWER_PATH = STATIC_BASE_PATH / 'pdfjs' / 'web' / 'viewer.html'
 
 # Sandbox directory mapping
 SANDBOX_MAPPING = {
@@ -161,27 +168,60 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_error(500, f"Error reading folders: {e}")
 
     def handle_get_data(self, path):
-        """Handle data file requests like /api/data/alloys_0003/assessment.json"""
+        """Handle data file requests like /api/data/alloys_0003/assessment.json or /api/data/dry-run/alloys_0003/evidences/file.pdf"""
         try:
-            # Extract folder and filename from path
-            # Path format: /api/data/{folder}/{filename}
+            # Extract path components
             path_parts = path.strip('/').split('/')
-            if len(path_parts) != 4 or path_parts[0] != 'api' or path_parts[1] != 'data':
+            if len(path_parts) < 4 or path_parts[0] != 'api' or path_parts[1] != 'data':
                 logging.warning(f"Invalid data path format: {path}")
                 self.send_error(
-                    400, "Invalid data path format. Expected: /api/data/{folder}/{filename}")
+                    400, "Invalid data path format. Expected: /api/data/{folder}/{filename} or /api/data/{run_type}/{folder}/evidences/{filename}")
                 return
 
-            folder = path_parts[2]
-            filename = path_parts[3]
+            # Handle different path formats
+            if len(path_parts) == 4:
+                # Original format: /api/data/{folder}/{filename}
+                folder = path_parts[2]
+                filename = path_parts[3]
+                file_path = Path(DATA_BASE_PATH) / folder / filename
+                is_evidence_file = False
+            elif len(path_parts) == 6 and path_parts[4] == 'evidences':
+                # New format: /api/data/{run_type}/{folder}/evidences/{filename}
+                run_type = path_parts[2]
+                folder = path_parts[3]
+                filename = path_parts[5]
+
+                # Map run_type to actual directory
+                if run_type == 'dry-run':
+                    base_path = Path(DATA_BASE_PATH)
+                else:
+                    base_path = Path(SANDBOX_BASE_PATH) / f'sandbox-{run_type}'
+
+                file_path = base_path / folder / 'evidences' / filename
+                is_evidence_file = True
+            else:
+                logging.warning(f"Invalid data path format: {path}")
+                self.send_error(400, "Invalid data path format")
+                return
 
             # Validate filename for security
-            if filename not in ALLOWED_DATA_FILES:
-                logging.warning(
-                    f"Attempt to access disallowed file: {filename}")
-                self.send_error(
-                    400, f"File {filename} not allowed. Allowed files: {list(ALLOWED_DATA_FILES)}")
-                return
+            if is_evidence_file:
+                # Check if evidence file extension is allowed
+                file_ext = Path(filename).suffix.lower()
+                if file_ext not in ALLOWED_EVIDENCE_EXTENSIONS:
+                    logging.warning(
+                        f"Attempt to access disallowed evidence file: {filename}")
+                    self.send_error(
+                        400, f"Evidence file {filename} not allowed. Allowed extensions: {list(ALLOWED_EVIDENCE_EXTENSIONS)}")
+                    return
+            else:
+                # Check if data file is allowed
+                if filename not in ALLOWED_DATA_FILES:
+                    logging.warning(
+                        f"Attempt to access disallowed file: {filename}")
+                    self.send_error(
+                        400, f"File {filename} not allowed. Allowed files: {list(ALLOWED_DATA_FILES)}")
+                    return
 
             # Validate folder name (basic security check)
             if not folder.replace('_', '').replace('-', '').isalnum():
@@ -189,12 +229,13 @@ class APIHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Invalid folder name")
                 return
 
-            # Construct full file path
-            file_path = Path(DATA_BASE_PATH) / folder / filename
-
-            # Security check: ensure path is within DATA_BASE_PATH
+            # Security check: ensure path is within allowed base path
             try:
-                file_path.resolve().relative_to(Path(DATA_BASE_PATH).resolve())
+                if is_evidence_file:
+                    base_check_path = base_path if 'base_path' in locals() else Path(DATA_BASE_PATH)
+                else:
+                    base_check_path = Path(DATA_BASE_PATH)
+                file_path.resolve().relative_to(base_check_path.resolve())
             except ValueError:
                 logging.error(f"Path traversal attempt: {file_path}")
                 self.send_error(403, "Access denied")
@@ -202,22 +243,37 @@ class APIHandler(BaseHTTPRequestHandler):
 
             if not file_path.exists():
                 logging.info(f"File not found: {file_path}")
-                self.send_error(
-                    404, f"File not found: {filename} in folder {folder}")
+                self.send_error(404, f"File not found: {filename}")
                 return
 
-            # Read and return JSON file
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            # Handle different file types
+            if is_evidence_file:
+                # Serve evidence files (PDF, images, etc.)
+                mime_type, _ = mimetypes.guess_type(str(file_path))
+                if mime_type is None:
+                    mime_type = 'application/octet-stream'
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_cors_headers()
-            self.end_headers()
+                self.send_response(200)
+                self.send_header('Content-Type', mime_type)
+                self.send_cors_headers()
+                self.end_headers()
 
-            self.wfile.write(json.dumps(
-                data, ensure_ascii=False).encode('utf-8'))
-            logging.info(f"Served data file: {folder}/{filename}")
+                with open(file_path, 'rb') as f:
+                    self.wfile.write(f.read())
+                logging.info(f"Served evidence file: {file_path}")
+            else:
+                # Handle JSON files
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_cors_headers()
+                self.end_headers()
+
+                self.wfile.write(json.dumps(
+                    data, ensure_ascii=False).encode('utf-8'))
+                logging.info(f"Served data file: {file_path}")
 
         except json.JSONDecodeError as e:
             logging.error(f"Invalid JSON in file {file_path}: {e}")
@@ -351,23 +407,38 @@ class APIHandler(BaseHTTPRequestHandler):
                 return
 
             # Determine content type and read file
-            content_type = 'text/plain; charset=utf-8'
-            if file_ext == '.json':
-                content_type = 'application/json; charset=utf-8'
-            elif file_ext == '.csv':
-                content_type = 'text/csv; charset=utf-8'
-            elif file_ext == '.py':
-                content_type = 'text/x-python; charset=utf-8'
+            if file_ext == '.png':
+                content_type = 'image/png'
+                # Read binary file
+                with open(file_path, 'rb') as f:
+                    content = f.read()
 
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', content_type)
+                self.send_header('Content-Length', str(len(content)))
+                self.send_cors_headers()
+                self.end_headers()
 
-            self.send_response(200)
-            self.send_header('Content-Type', content_type)
-            self.send_cors_headers()
-            self.end_headers()
+                self.wfile.write(content)
+            else:
+                # Handle text files
+                content_type = 'text/plain; charset=utf-8'
+                if file_ext == '.json':
+                    content_type = 'application/json; charset=utf-8'
+                elif file_ext == '.csv':
+                    content_type = 'text/csv; charset=utf-8'
+                elif file_ext == '.py':
+                    content_type = 'text/x-python; charset=utf-8'
 
-            self.wfile.write(content.encode('utf-8'))
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                self.send_response(200)
+                self.send_header('Content-Type', content_type)
+                self.send_cors_headers()
+                self.end_headers()
+
+                self.wfile.write(content.encode('utf-8'))
             logging.info(
                 f"Served simulation file: {run_type}/{folder}/{filename}")
 
