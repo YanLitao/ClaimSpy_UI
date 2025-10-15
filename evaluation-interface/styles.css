@@ -1175,22 +1175,21 @@ body {
 }
 
 .highlight-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
+    display: block;
+    padding: 10px;
+    margin: 6px 0;
+    background: #fff9c4;
+    border: 2px solid #ffc107;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .highlight-item:hover {
-    background: #e9ecef;
-    border-color: #007bff;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: #fff59d;
+    border-color: #ff8f00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 }
 
 .highlight-page {

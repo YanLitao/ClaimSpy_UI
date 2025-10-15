@@ -89,25 +89,99 @@ function jumpToPage(evidenceId, pageNumber) {
 
 // Jump to page with specific highlight (new function)
 function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
+    console.log(`jumpToPageWithHighlight called: evidenceId=${evidenceId}, page=${pageNumber}, text=${highlightText}`);
+
     // First jump to the page
     jumpToPage(evidenceId, pageNumber);
 
-    // Then try to highlight the text (PDF.js text search)
+    // Then try to highlight the text using multiple approaches, focused on the specific page
     const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
-    if (pdfFrame && pdfFrame.contentWindow) {
+    console.log('PDF frame found:', !!pdfFrame);
+
+    if (pdfFrame) {
+        // Approach 1: Try PDF.js postMessage API with page-specific search
         setTimeout(() => {
             try {
-                pdfFrame.contentWindow.postMessage({
-                    type: 'find',
-                    query: highlightText,
-                    caseSensitive: false,
-                    entireWord: false,
-                    highlightAll: true
-                }, '*');
+                console.log('Attempting PDF.js postMessage search on specific page...');
+                if (pdfFrame.contentWindow) {
+                    pdfFrame.contentWindow.postMessage({
+                        type: 'find',
+                        query: highlightText,
+                        caseSensitive: false,
+                        entireWord: false,
+                        highlightAll: false, // Only highlight first match
+                        findPrevious: false,
+                        matchDiacritics: false
+                    }, '*');
+                    console.log('PostMessage sent successfully');
+                }
             } catch (error) {
-                console.warn('Could not perform text search in PDF.js viewer:', error);
+                console.warn('PostMessage approach failed:', error);
             }
-        }, 1000); // Wait for page to load
+
+            // Approach 2: Try direct PDF.js API access with corrected method calls
+            setTimeout(() => {
+                try {
+                    console.log('Attempting direct PDF.js API access on specific page...');
+                    const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
+                    if (pdfViewer && pdfViewer.findController) {
+                        console.log('PDF.js findController found, executing page-specific search...');
+
+                        // Clear previous search using correct method
+                        if (typeof pdfViewer.findController.reset === 'function') {
+                            pdfViewer.findController.reset();
+                        }
+
+                        // Execute new search using correct PDF.js API
+                        const searchState = {
+                            query: highlightText,
+                            caseSensitive: false,
+                            entireWord: false,
+                            highlightAll: false, // Only first match
+                            findPrevious: false,
+                            matchDiacritics: false
+                        };
+
+                        // Try different API methods that exist in PDF.js
+                        if (typeof pdfViewer.findController.search === 'function') {
+                            pdfViewer.findController.search(searchState);
+                            console.log('Direct API search executed via search()');
+                        } else if (typeof pdfViewer.findController.find === 'function') {
+                            pdfViewer.findController.find(highlightText, false, false, false);
+                            console.log('Direct API search executed via find()');
+                        } else {
+                            console.warn('No suitable search method found on findController');
+                        }
+                    } else {
+                        console.warn('PDF.js findController not available');
+                    }
+                } catch (error) {
+                    console.warn('Direct API approach failed:', error);
+                }
+
+                // Approach 3: Enhanced URL-based search (most reliable)
+                setTimeout(() => {
+                    try {
+                        console.log('Attempting URL-based search with page constraint...');
+                        const currentSrc = pdfFrame.src;
+                        const basePath = currentSrc.split('#')[0];
+                        const searchQuery = encodeURIComponent(highlightText);
+                        // Use phrase search to be more precise, add zoom, and limit to first match
+                        const newSrc = `${basePath}#page=${pageNumber}&search="${searchQuery}"&zoom=125`;
+                        console.log('New URL:', newSrc);
+                        // Only update if different to avoid reload loop
+                        if (pdfFrame.src !== newSrc) {
+                            pdfFrame.src = newSrc;
+                            console.log('URL updated with page-constrained search parameter');
+                        }
+                    } catch (error) {
+                        console.warn('URL fallback approach failed:', error);
+                    }
+                }, 600); // Reduced from 1500ms
+            }, 300); // Reduced from 800ms
+        }, 500); // Reduced from 1200ms - faster response time
+    } else {
+        console.error('PDF frame not found for evidenceId:', evidenceId);
     }
 }
 
@@ -196,12 +270,16 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                         <div class="highlight-info">
                             <h6>Highlights:</h6>
                             <div class="highlight-list">
-                                ${highlightInfo.map(highlight => `
-                                    <div class="highlight-item" onclick="jumpToPageWithHighlight('${evidenceId}', ${highlight.page}, '${highlight.text.replace(/'/g, "\\'")}')">  
-                                        <span class="highlight-page">Page ${highlight.page}:</span>
-                                        <span class="highlight-text" style="background-color: ${highlight.color || 'yellow'}; padding: 2px 4px; border-radius: 2px;">${highlight.text}</span>
+                                ${highlightInfo.map((highlight, index) => {
+                const safeText = highlight.text.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+                return `
+                                    <div class="highlight-item" onclick="jumpToPageWithHighlight('${evidenceId}', ${highlight.page}, '${safeText}')" style="cursor: pointer; padding: 10px; margin: 6px 0; border: 2px solid #ffc107; border-radius: 6px; background: #fff9c4; transition: all 0.2s ease;">
+                                        <span class="highlight-page" style="font-weight: bold; color: #856404; font-size: 0.9rem;">📄 Page ${highlight.page}:</span>
+                                        <span class="highlight-text" style="background-color: #ffeb3b; padding: 4px 8px; border-radius: 4px; margin-left: 8px; border: 1px solid #ffc107; display: inline-block; margin-top: 4px;">${highlight.text}</span>
+                                        <div style="font-size: 0.8rem; color: #6c757d; margin-top: 4px;">🎯 Click to jump and highlight in PDF</div>
                                     </div>
-                                `).join('')}
+                                `;
+            }).join('')}
                             </div>
                         </div>
                     ` : ''}
@@ -225,25 +303,13 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                         // Apply initial highlights if available
                         if (highlightInfo.length > 0) {
                             const firstHighlight = highlightInfo[0];
-                            if (firstHighlight.text) {
-                                // Use PDF.js find functionality to highlight text
-                                const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
-                                if (pdfFrame && pdfFrame.contentWindow) {
-                                    try {
-                                        pdfFrame.contentWindow.postMessage({
-                                            type: 'find',
-                                            query: firstHighlight.text,
-                                            caseSensitive: false,
-                                            entireWord: false,
-                                            highlightAll: true
-                                        }, '*');
-                                    } catch (error) {
-                                        console.warn('Could not perform text search in PDF.js viewer:', error);
-                                    }
-                                }
+                            if (firstHighlight.text && firstHighlight.page) {
+                                console.log('Applying initial highlight on load...');
+                                // Use our improved jumpToPageWithHighlight function
+                                jumpToPageWithHighlight(evidenceId, firstHighlight.page, firstHighlight.text);
                             }
                         }
-                    }, 3000); // Wait for PDF.js to fully load
+                    }, 1500); // Reduced from 3000ms - faster initial load
                 };
             }
         }
@@ -331,10 +397,22 @@ function handlePDFFrameError(evidenceId) {
     }
 }
 
+// Open PDF in new tab
+function openPDFInNewTab(filePath) {
+    console.log('Opening PDF in new tab:', filePath);
+    const newTabUrl = `/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}`;
+    window.open(newTabUrl, '_blank');
+}
+
 // Make functions globally accessible
 window.handlePDFFrameLoad = handlePDFFrameLoad;
 window.handlePDFFrameError = handlePDFFrameError;
 window.showLocalPDF = showLocalPDF;
+window.jumpToPageWithHighlight = jumpToPageWithHighlight;
+window.jumpToPage = jumpToPage;
+window.zoomPDF = zoomPDF;
+window.navigatePage = navigatePage;
+window.openPDFInNewTab = openPDFInNewTab;
 
 // Global error handler to suppress PDF.js annotation errors
 window.addEventListener('error', function (e) {
