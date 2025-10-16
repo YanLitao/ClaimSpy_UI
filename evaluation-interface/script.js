@@ -112,7 +112,7 @@ async function loadSelectedFolder() {
                 problem: problemClaim
             };
 
-            loadAssessmentData(dataWithProblem);
+            await loadAssessmentData(dataWithProblem);
 
             // Update folder selection UI
             const folderSelection = document.getElementById('folderSelection');
@@ -201,7 +201,7 @@ async function loadJSONFromPath(filePath) {
 }
 
 // Load assessment data
-function loadAssessmentData(data) {
+async function loadAssessmentData(data) {
     currentData = data;
 
     // Update folder selection indicator
@@ -275,8 +275,8 @@ function loadAssessmentData(data) {
     // Display system scores
     displaySystemScores(assessment);
 
-    // Display explanations
-    displayExplanations(assessment.explanation || []);
+    // Display explanations - now with full file loading
+    await displayExplanations(assessment.explanation || []);
 
     // Update JSON context panel
     updateJSONContext(data);
@@ -367,9 +367,10 @@ async function loadSimulationFiles(evidenceId) {
 
     try {
         const response = await fetch(`/api/simulation-files/${runType}/${problemFolder}`);
+
         if (!response.ok) {
             if (response.status === 404) {
-                console.log(`No simulation files found for ${runType}/${problemFolder}`);
+                console.log(`🚫 No simulation files found for ${runType}/${problemFolder}`);
                 return [];
             }
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -379,7 +380,17 @@ async function loadSimulationFiles(evidenceId) {
         const allFiles = data.files || [];
 
         // Only return data files (CSV, JSON, PY), PNG files are handled as visualizations
-        const dataFiles = allFiles.filter(file => ['.csv', '.json', '.py'].includes(file.extension));
+        // Also filter out explanation files from display
+        const dataFiles = allFiles.filter(file => {
+            const isDataFile = ['.csv', '.json', '.py'].includes(file.extension);
+            const isExplanation = typeof isExplanationFile === 'function' ?
+                isExplanationFile(file.name) : file.name.endsWith('_explanation.json');
+
+
+
+            return isDataFile && !isExplanation;
+        });
+
         const pngFiles = allFiles.filter(file => file.extension === '.png');
 
         // Associate PNG files with their corresponding data files
@@ -404,6 +415,12 @@ async function loadSimulationFiles(evidenceId) {
     }
 }// Display simulation file content in right panel
 async function showSimulationFile(filename) {
+    // Use the new enhanced function with explanation support
+    if (typeof showSimulationFileWithExplanation === 'function') {
+        return showSimulationFileWithExplanation(filename);
+    }
+
+    // Fallback to original implementation
     const runType = getRunTypeFromCurrentFolder();
     const problemFolder = getProblemFolderFromCurrentFolder();
 
@@ -619,58 +636,6 @@ function parseCsvLine(line) {
 
     result.push(current.trim());
     return result;
-}// Load simulation files for all simulation evidence items
-async function loadSimulationFilesForEvidence() {
-    if (!evidenceData) return;
-
-    const simulationEvidence = Object.keys(evidenceData).filter(evidenceId => {
-        const evidence = evidenceData[evidenceId];
-        return evidence && evidence.type && evidence.type.toLowerCase().includes('simulation');
-    });
-
-    for (const evidenceId of simulationEvidence) {
-        const simulationFilesSection = document.getElementById(`simFiles${evidenceId}`);
-        if (!simulationFilesSection) continue;
-
-        try {
-            const files = await loadSimulationFiles(evidenceId);
-            const loadingDiv = simulationFilesSection.querySelector('.simulation-files-loading');
-
-            if (files.length === 0) {
-                loadingDiv.textContent = 'No simulation files found';
-                loadingDiv.style.color = '#999';
-                continue;
-            }
-
-            // Create file boxes (only show data files, not PNG visualizations)
-            const fileBoxesHtml = files.map(file => {
-                const visualizationIndicator = file.hasVisualization ? ' 📊' : '';
-                const tooltipText = file.hasVisualization ?
-                    `View ${file.name} with visualization (${formatFileSize(file.size)})` :
-                    `View ${file.name} (${formatFileSize(file.size)})`;
-
-                return `
-                    <div class="simulation-file-box" onclick="event.stopPropagation(); showSimulationFile('${file.name}')" 
-                         style="display: inline-block; margin: 2px; padding: 6px 10px; background: #f8f9fa; 
-                                border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
-                                transition: background-color 0.2s;"
-                         onmouseover="this.style.backgroundColor='#e9ecef'" 
-                         onmouseout="this.style.backgroundColor='#f8f9fa'"
-                         title="${tooltipText}">
-                        ${file.name}${visualizationIndicator}
-                    </div>
-                `;
-            }).join('');
-
-            loadingDiv.innerHTML = fileBoxesHtml;
-
-        } catch (error) {
-            console.error(`Error loading simulation files for ${evidenceId}:`, error);
-            const loadingDiv = simulationFilesSection.querySelector('.simulation-files-loading');
-            loadingDiv.textContent = 'Error loading files';
-            loadingDiv.style.color = '#c33';
-        }
-    }
 }
 
 
@@ -721,7 +686,7 @@ function displaySystemScores(assessment) {
 }
 
 // Display explanations
-function displayExplanations(explanations) {
+async function displayExplanations(explanations) {
     const container = document.getElementById('explanationsList');
     container.innerHTML = '';
     const assessmentPath = getAssessmentPath();
@@ -730,6 +695,26 @@ function displayExplanations(explanations) {
     if (!explanations || !Array.isArray(explanations)) {
         container.innerHTML = '<p style="color: #666; padding: 1rem;">No explanations available.</p>';
         return;
+    }
+
+    // Pre-load all simulation files for all simulation evidence
+    const simulationFilesCache = {};
+    if (evidenceData) {
+        const simulationEvidence = Object.keys(evidenceData).filter(evidenceId => {
+            const evidence = evidenceData[evidenceId];
+            return evidence && evidence.type && evidence.type.toLowerCase().includes('simulation');
+        });
+
+        // Load all simulation files at once
+        for (const evidenceId of simulationEvidence) {
+            try {
+                const files = await loadSimulationFiles(evidenceId);
+                simulationFilesCache[evidenceId] = files;
+            } catch (error) {
+                console.error(`Error loading simulation files for ${evidenceId}:`, error);
+                simulationFilesCache[evidenceId] = [];
+            }
+        }
     }
 
     explanations.forEach((explanation, index) => {
@@ -772,6 +757,47 @@ function displayExplanations(explanations) {
             const evidence = evidenceData[evidenceId];
             if (!evidence || !evidence.citation) return '';
             const hasValidUrl = isValidUrl(evidence.source);
+
+            // Generate simulation files HTML if this is simulation evidence
+            let simulationFilesHtml = '';
+            if (evidence.type && evidence.type.toLowerCase().includes('simulation') && simulationFilesCache[evidenceId]) {
+                const files = simulationFilesCache[evidenceId];
+                if (files.length > 0) {
+                    const fileBoxesHtml = files.map(file => {
+                        const visualizationIndicator = file.hasVisualization ? ' 📊' : '';
+                        const tooltipText = file.hasVisualization ?
+                            `View ${file.name} with visualization (${formatFileSize(file.size)})` :
+                            `View ${file.name} (${formatFileSize(file.size)})`;
+
+                        return `
+                            <div class="simulation-file-box" onclick="event.stopPropagation(); showSimulationFile('${file.name}')" 
+                                 style="display: inline-block; margin: 2px; padding: 6px 10px; background: #f8f9fa; 
+                                        border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+                                        transition: background-color 0.2s;"
+                                 onmouseover="this.style.backgroundColor='#e9ecef'" 
+                                 onmouseout="this.style.backgroundColor='#f8f9fa'"
+                                 title="${tooltipText}">
+                                ${file.name}${visualizationIndicator}
+                            </div>
+                        `;
+                    }).join('');
+
+                    simulationFilesHtml = `
+                        <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
+                            <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
+                            <div class="simulation-files-content" id="simFilesContent${evidenceId}">${fileBoxesHtml}</div>
+                        </div>
+                    `;
+                } else {
+                    simulationFilesHtml = `
+                        <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
+                            <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
+                            <div class="simulation-files-content" id="simFilesContent${evidenceId}" style="color: #999;">No simulation files found</div>
+                        </div>
+                    `;
+                }
+            }
+
             return `
                             <div class="evidence-item" onclick="showInJsonPanel([${pathStr}], 'evidence', '${evidenceId}')">
                                 <div class="evidence-header">
@@ -791,12 +817,7 @@ function displayExplanations(explanations) {
                                     </button>
                                 </div>
                             </div>
-                            ${evidence.type && evidence.type.toLowerCase().includes('simulation') ? `
-                                <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
-                                    <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
-                                    <div class="simulation-files-loading" style="color: #999; font-style: italic;">Loading files...</div>
-                                </div>
-                            ` : ''}
+                            ${simulationFilesHtml}
                         `;
         }).join('')}
                 </div>
@@ -808,9 +829,6 @@ function displayExplanations(explanations) {
 
     // Update local file button texts
     updateLocalFileButtonTexts();
-
-    // Load simulation files for simulation evidence
-    loadSimulationFilesForEvidence();
 }
 
 // Reset API key function (kept for compatibility)

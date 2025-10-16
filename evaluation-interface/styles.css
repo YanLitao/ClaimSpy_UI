@@ -1206,3 +1206,122 @@ body {
     font-size: 0.85rem;
     line-height: 1.3;
 }
+
+/* Code Explanation Styles */
+
+.code-explanation-overlay::-webkit-scrollbar {
+    width: 4px;
+}
+
+.code-explanation-overlay::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.code-explanation-overlay::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+}
+
+.code-explanation-overlay::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* Enhanced content display for code with explanations */
+.content-display {
+    position: relative;
+    overflow: visible;
+}
+
+.content-display pre {
+    position: relative;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    /* Fixed font size for consistent line height calculation */
+    line-height: 1.4;
+    /* Fixed line height for precise positioning */
+    white-space: pre;
+}
+
+.content-display code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* Right panel width adjustment for explanations */
+.right-panel.expanded.with-explanations {
+    width: 800px !important;
+}
+
+/* Hover effect for explained code sections */
+.explained-code-section {
+    position: relative;
+    background: rgba(52, 152, 219, 0.05);
+    border-left: 3px solid #3498db;
+    margin: 0 -16px;
+    padding: 0 16px;
+    transition: background-color 0.2s ease;
+}
+
+.explained-code-section:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+/* Interactive code explanation indicator */
+.code-explanation-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.explained-code-section:hover .code-explanation-indicator {
+    opacity: 1;
+}
+
+/* Materials parameter styling in explanations */
+.materials-parameter {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 4px 0;
+    font-size: 0.8rem;
+}
+
+.materials-parameter .param-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 2px;
+}
+
+.materials-parameter .param-meaning {
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.materials-parameter .param-range {
+    color: #888;
+    font-size: 0.75rem;
+    font-style: italic;
+}
