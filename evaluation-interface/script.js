@@ -15,6 +15,11 @@ let availableFolders = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize trajectory flow system
+    if (window.trajectoryFlow && typeof window.trajectoryFlow.init === 'function') {
+        window.trajectoryFlow.init();
+    }
+
     // Load available folders on page load
     loadAvailableFolders();
 });
@@ -101,6 +106,12 @@ async function loadSelectedFolder() {
         if (mappingDataResult) {
             mappingData = mappingDataResult;
             console.log('Mapping data loaded successfully');
+        }
+
+        // Load data into trajectory flow module
+        if (window.trajectoryFlow && trajectoryDataResult && mappingDataResult) {
+            window.trajectoryFlow.loadData(trajectoryDataResult, mappingDataResult);
+            console.log('Trajectory flow data loaded');
         }
 
         // Load assessment data (this will trigger the UI update)
@@ -727,20 +738,11 @@ async function displayExplanations(explanations) {
         const hasEvidence = validEvidence.length > 0;
 
         explanationEl.innerHTML = `
-            <div class="trajectory-section" id="trajectorySection${index}" style="display: none;">
-                <div class="evidence-header-toggle" onclick="toggleTrajectoryDetails(${index})">
-                    <h4>🔍 Trajectory Details</h4>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="trajectory-content" id="trajectoryContent${index}">
-                    ${mappingData ? generateTrajectoryContent(index + 1) : '<p>Trajectory data not available</p>'}
-                </div>
-            </div>
             <div class="explanation-header">
                 <div class="explanation-text clickable-element" onclick="showInJsonPanel([${pathStr}], 'explanation', ${index})">${explanation.text}</div>
                 <div class="explanation-actions">
                     ${hasEvidence ? `<button class="btn" onclick="toggleEvidenceSection(${index})">Evidence (${validEvidence.length})</button>` : ''}
-                    ${mappingData ? `<button class="btn" onclick="toggleTrajectoryContent(${index})">Show Trajectory</button>` : ''}
+                    ${mappingData ? `<button class="btn" onclick="showTrajectoryFlow(${index})">Show Trajectory</button>` : ''}
                 </div>
             </div>
             <div class="explanation-content" id="explanationContent${index}">
@@ -799,7 +801,7 @@ async function displayExplanations(explanations) {
             }
 
             return `
-                            <div class="evidence-item" onclick="showInJsonPanel([${pathStr}], 'evidence', '${evidenceId}')">
+                            <div class="evidence-item" id="evidence-${index}-${evidenceId}" data-evidence-id="${evidenceId}" data-explanation-index="${index}" onclick="showInJsonPanel([${pathStr}], 'evidence', '${evidenceId}')">
                                 <div class="evidence-header">
                                     <span class="evidence-type ${getEvidenceTypeClass(evidence.type)}">${evidence.type || 'Unknown'}</span>
                                 </div>
@@ -829,11 +831,6 @@ async function displayExplanations(explanations) {
 
     // Update local file button texts
     updateLocalFileButtonTexts();
-}
-
-// Reset API key function (kept for compatibility)
-function resetApiKey() {
-    alert('API functionality has been replaced with local file viewing.');
 }
 
 // Update local file button texts
@@ -870,24 +867,21 @@ function toggleEvidenceSection(index) {
     evidenceSection.classList.toggle('expanded');
 }
 
-// Toggle trajectory content visibility
-function toggleTrajectoryContent(index) {
-    const trajectorySection = document.getElementById(`trajectorySection${index}`);
+// Show trajectory flow in left panel
+function showTrajectoryFlow(explanationIndex = null) {
+    console.log(`showTrajectoryFlow called with explanationIndex: ${explanationIndex}`);
 
-    // Toggle the trajectory section display
-    if (trajectorySection.style.display === 'none') {
-        trajectorySection.style.display = 'block';
-        trajectorySection.classList.add('expanded');
-    } else {
-        trajectorySection.style.display = 'none';
-        trajectorySection.classList.remove('expanded');
+    // Expand evidence section if explanationIndex is provided
+    if (explanationIndex !== null) {
+        console.log(`Expanding evidence section for explanation ${explanationIndex}`);
+        toggleEvidenceSection(explanationIndex);
     }
-}
 
-// Toggle trajectory details section
-function toggleTrajectoryDetails(index) {
-    const section = document.getElementById(`trajectorySection${index}`);
-    section.classList.toggle('expanded');
+    if (window.trajectoryFlow && typeof window.trajectoryFlow.show === 'function') {
+        window.trajectoryFlow.show(explanationIndex);
+    } else {
+        console.error('Trajectory flow module not loaded');
+    }
 }
 
 // Format trajectory text with markdown-like formatting and handle objects
@@ -942,92 +936,6 @@ function formatSearchResults(results) {
             return `<div class="search-result-simple">${typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)}</div>`;
         }
     }).join('');
-}
-
-// Generate trajectory content for a given explanation
-function generateTrajectoryContent(explanationNumber) {
-    if (!trajectoryData || !mappingData) {
-        return '<p>Trajectory data not available</p>';
-    }
-
-    const stepIndex = mappingData.explanation_to_trajectory[explanationNumber.toString()];
-    if (stepIndex === undefined || stepIndex === null) {
-        return '<p>No trajectory mapping found for this explanation</p>';
-    }
-
-    const trajectory = trajectoryData.trajectory;
-    let html = '';
-
-    const thoughtKey = `thought_${stepIndex}`;
-    const obsKey = `observation_${stepIndex}`;
-    const toolNameKey = `tool_name_${stepIndex}`;
-    const toolArgsKey = `tool_args_${stepIndex}`;
-
-    // Show Thought
-    if (trajectory[thoughtKey]) {
-        html += `
-            <div class="trajectory-item">
-                <div class="trajectory-step">
-                    <span class="trajectory-type thought">Thought</span>
-                    Step ${stepIndex}
-                </div>
-                <div class="trajectory-text clickable-element" onclick="showTrajectoryInJsonPanel('${thoughtKey}')">${formatTrajectoryText(trajectory[thoughtKey])}</div>
-            </div>
-        `;
-    }
-
-    // Show Tool (if exists for this step)
-    if (trajectory[toolNameKey]) {
-        const toolName = trajectory[toolNameKey];
-        const toolArgs = trajectory[toolArgsKey];
-
-        // Format tool args in a user-friendly way
-        let formattedArgs = '';
-        if (toolArgs && typeof toolArgs === 'object') {
-            if (toolArgs.query) {
-                formattedArgs += `<strong>Query:</strong> ${toolArgs.query}`;
-                if (toolArgs.max_results) {
-                    formattedArgs += `<br><strong>Max Results:</strong> ${toolArgs.max_results}`;
-                }
-                // Add other common parameters if they exist
-                Object.keys(toolArgs).forEach(key => {
-                    if (key !== 'query' && key !== 'max_results') {
-                        formattedArgs += `<br><strong>${key}:</strong> ${toolArgs[key]}`;
-                    }
-                });
-            } else {
-                // Fallback to formatted JSON for other tool types
-                formattedArgs = `<pre>${JSON.stringify(toolArgs, null, 2)}</pre>`;
-            }
-        } else {
-            formattedArgs = String(toolArgs || 'No arguments');
-        }
-
-        html += `
-            <div class="trajectory-item">
-                <div class="trajectory-step">
-                    <span class="trajectory-type tool">Tool</span>
-                    ${toolName} (Step ${stepIndex})
-                </div>
-                <div class="trajectory-text clickable-element" onclick="showTrajectoryInJsonPanel('${toolArgsKey}')">${formattedArgs}</div>
-            </div>
-        `;
-    }
-
-    // Show Observation
-    if (trajectory[obsKey]) {
-        html += `
-            <div class="trajectory-item">
-                <div class="trajectory-step">
-                    <span class="trajectory-type observation">Observation</span>
-                    Step ${stepIndex}
-                </div>
-                <div class="trajectory-text clickable-element" onclick="showTrajectoryInJsonPanel('${obsKey}')">${formatTrajectoryText(trajectory[obsKey])}</div>
-            </div>
-        `;
-    }
-
-    return html || '<p>No trajectory data found for this explanation</p>';
 }
 
 // Highlight active evidence item
@@ -1318,488 +1226,6 @@ function showError(message) {
     setTimeout(() => errorDiv.remove(), 5000);
 }
 
-// Get OpenAI API key with user prompt
-async function getOpenAIApiKey(forcePrompt = false) {
-    // First check if we already have a key stored (unless forced to prompt)
-    if (userApiKey && !forcePrompt) {
-        return userApiKey;
-    }
-
-    // Check if key is configured in window object or config.js
-    const configuredKey = (typeof window !== 'undefined' && window.OPENAI_TOKEN) ||
-        (typeof OPENAI_TOKEN !== 'undefined' && OPENAI_TOKEN);
-
-    if (configuredKey) {
-        userApiKey = configuredKey;
-        apiKeyRemembered = true;
-        // Update button texts since API key is configured
-        updateAIButtonTexts();
-        return userApiKey;
-    }
-
-    // Prompt user for API key
-    const apiKey = prompt(
-        'To use AI features, please enter your OpenAI API key:\n\n' +
-        'You can get your API key from: https://platform.openai.com/api-keys\n\n' +
-        'Note: Your key will be stored temporarily in this session for convenience.'
-    );
-
-    if (!apiKey || !apiKey.trim()) {
-        return null;
-    }
-
-    // Ask if user wants to remember the key for this session
-    const remember = confirm(
-        'Would you like to remember this API key for the rest of this session?\n\n' +
-        'If you choose "OK", you won\'t need to enter it again until you refresh the page.\n' +
-        'If you choose "Cancel", you\'ll be asked each time you use AI features.'
-    );
-
-    if (remember) {
-        userApiKey = apiKey.trim();
-        apiKeyRemembered = true;
-        // Update button texts to reflect that API key is now remembered
-        updateAIButtonTexts();
-    }
-
-    return apiKey.trim();
-}
-
-// Scrape web content using multiple proxy services and fallback strategies
-async function scrapeWebContent(url) {
-    try {
-        console.log('Attempting to scrape content from:', url);
-
-        // Try multiple CORS proxy services with different approaches
-        const proxyServices = [
-            // AllOrigins - good for many sites
-            {
-                url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-                type: 'allorigins',
-                timeout: 10000
-            },
-            // Proxy using a different service
-            {
-                url: `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
-                type: 'thingproxy',
-                timeout: 10000
-            },
-            // Another CORS proxy
-            {
-                url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-                type: 'codetabs',
-                timeout: 10000
-            }
-        ];
-
-        for (const proxy of proxyServices) {
-            try {
-                console.log(`Trying proxy service: ${proxy.type} - ${proxy.url}`);
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), proxy.timeout);
-
-                const response = await fetch(proxy.url, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5',
-                        'Accept-Encoding': 'gzip, deflate',
-                        'DNT': '1',
-                        'Connection': 'keep-alive',
-                        'Upgrade-Insecure-Requests': '1'
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (response.ok) {
-                    let content;
-                    const contentType = response.headers.get('content-type') || '';
-
-                    if (proxy.type === 'allorigins') {
-                        const data = await response.json();
-                        content = data.contents;
-                    } else if (contentType.includes('application/json')) {
-                        // Some proxies return JSON wrapped content
-                        try {
-                            const data = await response.json();
-                            content = data.html || data.content || data.data || JSON.stringify(data);
-                        } catch {
-                            content = await response.text();
-                        }
-                    } else {
-                        content = await response.text();
-                    }
-
-                    // Try to extract meaningful content
-                    const extractedContent = extractTextContent(content, url);
-
-                    if (extractedContent && extractedContent.length > 100) {
-                        console.log(`✅ Successfully scraped content via ${proxy.type}, length:`, extractedContent.length);
-                        return extractedContent;
-                    } else {
-                        console.log(`❌ ${proxy.type} returned insufficient content:`, extractedContent?.length || 0, 'chars');
-                    }
-                } else {
-                    console.log(`❌ ${proxy.type} failed with status:`, response.status, response.statusText);
-                }
-            } catch (proxyError) {
-                if (proxyError.name === 'AbortError') {
-                    console.log(`⏰ ${proxy.type} timed out after ${proxy.timeout}ms`);
-                } else {
-                    console.log(`❌ ${proxy.type} error:`, proxyError.message);
-                }
-                continue;
-            }
-        }
-
-        // If all proxies fail, try direct fetch (may fail due to CORS)
-        console.log('🔄 All proxies failed, trying direct fetch...');
-        try {
-            const response = await fetch(url, {
-                mode: 'cors',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; ContentAnalyzer/1.0)'
-                }
-            });
-            if (response.ok) {
-                const content = await response.text();
-                const extractedContent = extractTextContent(content, url);
-                if (extractedContent && extractedContent.length > 100) {
-                    console.log('✅ Direct fetch successful, length:', extractedContent.length);
-                    return extractedContent;
-                }
-            }
-        } catch (directError) {
-            console.log('❌ Direct fetch failed:', directError.message);
-        }
-
-        // Final fallback - return a message explaining the issue
-        console.log('❌ All content scraping methods failed for:', url);
-        return generateFallbackContent(url);
-
-    } catch (error) {
-        console.error('💥 Critical error in scrapeWebContent:', error);
-        return generateFallbackContent(url);
-    }
-}
-
-// Extract text content from HTML with better parsing
-function extractTextContent(htmlContent, sourceUrl) {
-    try {
-        if (!htmlContent || typeof htmlContent !== 'string') {
-            return null;
-        }
-
-        // If it's already plain text, return as-is
-        if (!htmlContent.includes('<') && !htmlContent.includes('>')) {
-            return htmlContent.trim();
-        }
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, 'text/html');
-
-        // Remove unwanted elements
-        const unwantedSelectors = [
-            'script', 'style', 'nav', 'header', 'footer', 'aside',
-            '.advertisement', '.ads', '.social-share', '.comments',
-            '.sidebar', '.menu', '.navigation', '.popup', '.modal',
-            '[class*="cookie"]', '[class*="gdpr"]', '[id*="cookie"]'
-        ];
-
-        unwantedSelectors.forEach(selector => {
-            doc.querySelectorAll(selector).forEach(el => el.remove());
-        });
-
-        // Try to find main content areas
-        const contentSelectors = [
-            'main', 'article', '[role="main"]',
-            '.main-content', '.content', '.article-body', '.post-content',
-            '#main', '#content', '#article', '.abstract', '.full-text',
-            '.c-article-body', '.article-content', '.paper-content'
-        ];
-
-        let textContent = '';
-
-        for (const selector of contentSelectors) {
-            const mainContent = doc.querySelector(selector);
-            if (mainContent) {
-                textContent = mainContent.innerText || mainContent.textContent || '';
-                if (textContent.length > 200) {
-                    break;
-                }
-            }
-        }
-
-        // Fallback to body if no main content found
-        if (!textContent || textContent.length < 200) {
-            textContent = doc.body?.innerText || doc.body?.textContent || '';
-        }
-
-        // Clean up the text
-        textContent = textContent
-            .replace(/\s+/g, ' ')
-            .replace(/\n\s*\n\s*/g, '\n')
-            .replace(/^\s+|\s+$/g, '')
-            .trim();
-
-        // Filter out very short or repetitive content
-        if (textContent.length < 100) {
-            return null;
-        }
-
-        console.log(`📝 Extracted ${textContent.length} characters from ${sourceUrl}`);
-        return textContent;
-
-    } catch (error) {
-        console.error('Error extracting text content:', error);
-        return null;
-    }
-}
-
-// Generate fallback content when scraping fails
-function generateFallbackContent(url) {
-    const domain = new URL(url).hostname;
-    return `Unable to directly access content from ${domain}. This appears to be a restricted academic resource that requires institutional access or login credentials. 
-
-The document URL is: ${url}
-
-Common reasons for access restrictions:
-• Paywall or subscription required
-• Institutional login needed
-• CORS/security policies blocking automated access
-• Geographic restrictions
-
-To analyze this content, you could:
-1. Access the article manually and copy relevant excerpts
-2. Use institutional access if available
-3. Search for open access versions of the same research
-4. Check if the authors have posted preprints elsewhere
-
-The AI analysis will proceed with the available metadata and citation information.`;
-}
-
-// Analyze content with AI to find relevant passages
-async function analyzeContentWithAI(content, explanationText, citation, apiKey, sourceUrl) {
-    try {
-        // Determine if we have actual content or fallback message
-        const isAccessRestricted = content && content.includes('Unable to directly access content');
-
-        // Truncate content if too long (GPT has token limits)
-        const maxContentLength = 8000; // Approximately 2000 tokens
-        const truncatedContent = content && content.length > maxContentLength
-            ? content.substring(0, maxContentLength) + '...[content truncated]'
-            : content || '';
-
-        // Adjust system message based on whether we have content
-        const systemMessage = isAccessRestricted
-            ? `You are a scientific research assistant. When you cannot access the full content of a research paper, 
-               provide helpful analysis based on the citation, URL, and explanation provided. 
-               
-               Return your response as a JSON object with this structure:
-               {
-                   "relevant_passages": [
-                       {
-                           "sentence": "Analysis based on citation and context",
-                           "context_before": "Background information",
-                           "context_after": "Implications and relevance",
-                           "relevance_score": 0.8,
-                           "note": "Analysis based on citation metadata due to access restrictions"
-                       }
-                   ],
-                   "access_note": "Content could not be directly accessed due to restrictions"
-               }`
-            : `You are an expert at finding relevant passages in scientific documents. 
-               Given a document content, an explanation, and a citation, find the most relevant sentences that support the explanation.
-               
-               Return your response as a JSON object with this structure:
-               {
-                   "relevant_passages": [
-                       {
-                           "sentence": "The exact sentence that supports the explanation",
-                           "context_before": "1-2 sentences before for context", 
-                           "context_after": "1-2 sentences after for context",
-                           "relevance_score": 0.9
-                       }
-                   ]
-               }
-               
-               Only include sentences with high relevance (score > 0.7). Maximum 5 passages.`;
-
-        const userMessage = isAccessRestricted
-            ? `I need help analyzing a research paper that I cannot directly access due to access restrictions.
-
-**Explanation to support:** "${explanationText}"
-
-**Citation:** ${citation || 'N/A'}
-
-**Source URL:** ${sourceUrl}
-
-**Access Status:** ${truncatedContent}
-
-Based on the citation information and context, please provide an analysis of how this source likely supports the explanation. Include what kind of content or findings you would expect from this type of research.`
-            : `Find passages in this document that support the given explanation:
-
-**Explanation to support:** "${explanationText}"
-
-**Expected citation:** ${citation || 'N/A'}
-
-**Document content:**
-${truncatedContent}
-
-Please identify the most relevant sentences and provide context around them.`;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'system',
-                        content: systemMessage
-                    },
-                    {
-                        role: 'user',
-                        content: userMessage
-                    }
-                ],
-                max_tokens: isAccessRestricted ? 800 : 1500,
-                temperature: 0.1
-            })
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            const analysisText = result.choices[0]?.message?.content;
-
-            try {
-                const analysisData = JSON.parse(analysisText);
-                return analysisData;
-            } catch (parseError) {
-                console.error('Failed to parse AI response as JSON:', parseError);
-                // Fallback: create a simple response
-                return {
-                    relevant_passages: [{
-                        sentence: analysisText.substring(0, 200) + '...',
-                        context_before: '',
-                        context_after: '',
-                        relevance_score: 0.8
-                    }]
-                };
-            }
-        } else {
-            console.error('OpenAI API error:', response.status, response.statusText);
-            return null;
-        }
-    } catch (error) {
-        console.error('Error in AI analysis:', error);
-        return null;
-    }
-}
-
-// Display content in reading mode
-function displayReadingMode(analysisResult, evidence, fromCache, extensionInfo = null) {
-    const readingModeViewer = document.getElementById('readingModeViewer');
-
-    let html = `
-        <div class="source-info">
-            <div class="source-title">Source Analysis</div>
-            <a href="${evidence.source}" target="_blank" class="source-url">${evidence.source}</a>
-            ${evidence.citation ? `<div style="margin-top: 0.5rem; font-style: italic; color: #666;">${evidence.citation}</div>` : ''}
-        </div>
-    `;
-
-    if (fromCache) {
-        html += '<div class="cache-indicator">Cached</div>';
-    }
-
-    if (extensionInfo && extensionInfo.useExtension) {
-        html += `
-            <div style="background: #d5f4e6; border: 1px solid #27ae60; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
-                <div style="font-weight: 600; color: #27ae60; margin-bottom: 0.5rem;">🎯 Chrome Extension Analysis</div>
-                <div style="color: #155724; font-size: 0.9rem;">Text has been highlighted directly in the source document tab. The extension analyzed the full page content and highlighted relevant passages.</div>
-            </div>
-        `;
-    }
-
-    // Show access note if content was restricted
-    if (analysisResult.access_note) {
-        html += `
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
-                <div style="font-weight: 600; color: #856404; margin-bottom: 0.5rem;">📋 Access Restricted</div>
-                <div style="color: #856404; font-size: 0.9rem;">${analysisResult.access_note}</div>
-                <div style="margin-top: 0.5rem;">
-                    <button onclick="openInNewTab('${evidence.source}')" style="background: #ffc107; color: #000; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
-                        📖 Open in New Tab
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    if (analysisResult.relevant_passages && analysisResult.relevant_passages.length > 0) {
-        const title = analysisResult.access_note ? 'AI Analysis Based on Citation' : 'Relevant Passages';
-        html += `<h3>${title}</h3>`;
-
-        analysisResult.relevant_passages.forEach((passage, index) => {
-            html += `
-                <div class="relevant-passage">
-                    ${passage.context_before ? `<div class="passage-context before">${passage.context_before}</div>` : ''}
-                    <div class="highlighted-sentence">
-                        ${passage.sentence}
-                        ${passage.note ? `<div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem; font-style: italic;">💡 ${passage.note}</div>` : ''}
-                    </div>
-                    ${passage.context_after ? `<div class="passage-context after">${passage.context_after}</div>` : ''}
-                    ${passage.relevance_score ? `<div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Relevance: ${(passage.relevance_score * 100).toFixed(0)}%</div>` : ''}
-                </div>
-            `;
-        });
-    } else {
-        html += '<div class="error-message">No relevant analysis could be generated for this source.</div>';
-    }
-
-    // Add helpful suggestions for restricted content
-    if (analysisResult.access_note) {
-        html += `
-            <div style="background: #e8f4fd; border: 1px solid #3498db; border-radius: 6px; padding: 1rem; margin-top: 1.5rem;">
-                <div style="font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">💡 Suggestions</div>
-                <ul style="color: #2c3e50; font-size: 0.9rem; margin: 0; padding-left: 1.2rem;">
-                    <li>Try accessing through your institution's library</li>
-                    <li>Search for open access versions on arXiv, ResearchGate, or author websites</li>
-                    <li>Use Google Scholar to find related open access papers</li>
-                    <li>Contact authors directly for preprints</li>
-                </ul>
-            </div>
-        `;
-    }
-
-    readingModeViewer.innerHTML = html;
-    readingModeViewer.style.display = 'block';
-}
-
-// Show error in reading mode
-function showErrorInReadingMode(message) {
-    const readingModeViewer = document.getElementById('readingModeViewer');
-    readingModeViewer.innerHTML = `
-        <div class="error-message">
-            <strong>Unable to analyze source:</strong><br>
-            ${message}
-        </div>
-    `;
-    readingModeViewer.style.display = 'block';
-}
-
-// Open URL in new tab
-function openInNewTab(url) {
-    window.open(url, '_blank');
-}
-
 // View local evidence file
 async function viewLocalEvidence(evidenceId) {
     try {
@@ -1874,84 +1300,3 @@ async function displayLocalPDF(evidenceMapping, evidenceId) {
 function openPDFInNewTab(pdfPath) {
     window.open(pdfPath, '_blank');
 }
-
-// Sample data functions for demo purposes
-function getSampleAssessmentData() {
-    return {
-        "type": "assessment",
-        "problem_id": "alloys_0003",
-        "likert_score": -1,
-        "continuous_score": 0.08,
-        "confidence": 0.62,
-        "explanation": [
-            {
-                "text": "The claim about WE43 magnesium alloy demonstrates several promising properties but requires verification of the specific oxygen concentration levels and fracture toughness values mentioned.",
-                "evidence": ["ev_oxygen_study", "ev_fracture_test"]
-            },
-            {
-                "text": "Laser powder bed fusion under high partial pressure oxygen is a novel approach that could theoretically achieve the claimed oxygen concentrations, though this requires careful validation.",
-                "evidence": ["ev_lpbf_process", "ev_oxygen_uptake"]
-            }
-        ],
-        "evidence": {
-            "ev_oxygen_study": {
-                "type": "literature review",
-                "source": "https://example.com/oxygen-magnesium-study",
-                "citation": "Smith et al. (2023). Oxygen uptake in magnesium alloys during additive manufacturing. Journal of Materials Science, 58(12), 1234-1245."
-            },
-            "ev_fracture_test": {
-                "type": "experimental data",
-                "source": "https://example.com/fracture-toughness-data",
-                "citation": "Johnson, R. (2023). Fracture toughness measurements in WE43 alloy variants. Materials Testing, 45(8), 567-578."
-            },
-            "ev_lpbf_process": {
-                "type": "simulation",
-                "source": "https://example.com/lpbf-simulation",
-                "citation": "Chen, L. et al. (2023). Computational modeling of oxygen transport in laser powder bed fusion. Additive Manufacturing, 34, 101234."
-            },
-            "ev_oxygen_uptake": {
-                "type": "web search",
-                "source": "https://example.com/oxygen-concentration-analysis",
-                "citation": "Materials Research Database. High oxygen concentration effects in magnesium alloys. Retrieved 2023."
-            }
-        }
-    };
-}
-
-function getSampleTrajectoryData() {
-    return {
-        "trajectory": {
-            "thought_1": "I need to analyze the claim about WE43 magnesium alloy with specific oxygen concentrations and fracture toughness values. Let me start by understanding the baseline properties of WE43 alloy.",
-            "tool_name_1": "search",
-            "tool_args_1": {
-                "query": "WE43 magnesium alloy baseline properties fracture toughness",
-                "max_results": 5
-            },
-            "observation_1": "Found baseline WE43 properties: typical fracture toughness ranges from 14-18 MPa·m^0.5, density ~1.84 g/cm³, commonly used for biomedical applications.",
-            "thought_2": "The claim mentions 10000 ppm oxygen concentration which is quite high for magnesium alloys. I should investigate if this level is achievable and what effects it might have.",
-            "tool_name_2": "search",
-            "tool_args_2": {
-                "query": "magnesium alloy oxygen concentration 10000 ppm effects mechanical properties",
-                "max_results": 3
-            },
-            "observation_2": "High oxygen concentrations in magnesium can increase hardness but may reduce ductility. 10000 ppm is at the upper end of typical ranges for processed magnesium alloys.",
-            "thought_3": "Now I need to examine if laser powder bed fusion under high oxygen partial pressure can achieve these concentrations and maintain the claimed fracture toughness.",
-            "tool_name_3": "search",
-            "tool_args_3": {
-                "query": "laser powder bed fusion magnesium oxygen partial pressure additive manufacturing",
-                "max_results": 4
-            },
-            "observation_3": "LPBF of magnesium alloys typically requires controlled atmosphere. High oxygen partial pressure during processing could lead to increased oxygen pickup, but maintaining fracture toughness at 16 MPa·m^0.5 with high oxygen content needs verification."
-        }
-    };
-}
-
-function getSampleMappingData() {
-    return {
-        "explanation_to_trajectory": {
-            "1": 1,
-            "2": 3
-        }
-    };
-}
-

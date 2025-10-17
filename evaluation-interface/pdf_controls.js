@@ -87,99 +87,157 @@ function jumpToPage(evidenceId, pageNumber) {
     }
 }
 
-// Jump to page with specific highlight (new function)
+// Jump to page with specific highlight using exact text matching
 function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
     console.log(`jumpToPageWithHighlight called: evidenceId=${evidenceId}, page=${pageNumber}, text=${highlightText}`);
 
-    // First jump to the page
+    // First jump to the specified page
     jumpToPage(evidenceId, pageNumber);
 
-    // Then try to highlight the text using multiple approaches, focused on the specific page
+    // Then perform exact text search on that page
     const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
     console.log('PDF frame found:', !!pdfFrame);
 
-    if (pdfFrame) {
-        // Approach 1: Try PDF.js postMessage API with page-specific search
-        setTimeout(() => {
-            try {
-                console.log('Attempting PDF.js postMessage search on specific page...');
-                if (pdfFrame.contentWindow) {
-                    pdfFrame.contentWindow.postMessage({
-                        type: 'find',
-                        query: highlightText,
-                        caseSensitive: false,
-                        entireWord: false,
-                        highlightAll: false, // Only highlight first match
-                        findPrevious: false,
-                        matchDiacritics: false
-                    }, '*');
-                    console.log('PostMessage sent successfully');
-                }
-            } catch (error) {
-                console.warn('PostMessage approach failed:', error);
-            }
-
-            // Approach 2: Try direct PDF.js API access with corrected method calls
-            setTimeout(() => {
+    if (pdfFrame && pdfFrame.contentWindow) {
+        try {
+            // Perform exact text search on the specified page
+            const performExactSearch = () => {
                 try {
-                    console.log('Attempting direct PDF.js API access on specific page...');
                     const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
                     if (pdfViewer && pdfViewer.findController) {
-                        console.log('PDF.js findController found, executing page-specific search...');
+                        console.log('PDF.js findController found, executing exact text search...');
+                        console.log('Available methods:', Object.keys(pdfViewer.findController));
 
-                        // Clear previous search using correct method
+                        // Clear previous search
                         if (typeof pdfViewer.findController.reset === 'function') {
                             pdfViewer.findController.reset();
                         }
 
-                        // Execute new search using correct PDF.js API
-                        const searchState = {
-                            query: highlightText,
-                            caseSensitive: false,
-                            entireWord: false,
-                            highlightAll: false, // Only first match
-                            findPrevious: false,
-                            matchDiacritics: false
-                        };
+                        // Method 1: Try the most direct approach - setting state and executing
+                        try {
+                            // Set the search query directly
+                            pdfViewer.findController.state = {
+                                query: highlightText,
+                                caseSensitive: false,
+                                entireWord: false,
+                                highlightAll: false,
+                                findPrevious: false,
+                                matchDiacritics: false,
+                                phraseSearch: true
+                            };
 
-                        // Try different API methods that exist in PDF.js
-                        if (typeof pdfViewer.findController.search === 'function') {
-                            pdfViewer.findController.search(searchState);
-                            console.log('Direct API search executed via search()');
-                        } else if (typeof pdfViewer.findController.find === 'function') {
-                            pdfViewer.findController.find(highlightText, false, false, false);
-                            console.log('Direct API search executed via find()');
-                        } else {
-                            console.warn('No suitable search method found on findController');
+                            // Execute the search
+                            if (typeof pdfViewer.findController.executeCommand === 'function') {
+                                pdfViewer.findController.executeCommand('find');
+                                console.log('Search executed via state + executeCommand');
+                                return;
+                            } else if (typeof pdfViewer.findController._search === 'function') {
+                                pdfViewer.findController._search();
+                                console.log('Search executed via _search()');
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('Direct state method failed:', e);
                         }
+
+                        // Method 2: Try using the findbar programmatically
+                        try {
+                            const findInput = pdfViewer.findBar?.findField;
+                            if (findInput) {
+                                findInput.value = highlightText;
+                                // Trigger the search event
+                                const event = new Event('input', { bubbles: true });
+                                findInput.dispatchEvent(event);
+                                console.log('Search executed via findBar input');
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('FindBar method failed:', e);
+                        }
+
+                        // Method 3: Try keyboard shortcut simulation
+                        try {
+                            // Open find bar with Ctrl+F
+                            const ctrlF = new KeyboardEvent('keydown', {
+                                key: 'f',
+                                ctrlKey: true,
+                                bubbles: true
+                            });
+                            pdfFrame.contentDocument.dispatchEvent(ctrlF);
+
+                            setTimeout(() => {
+                                const findInput = pdfViewer.findBar?.findField;
+                                if (findInput) {
+                                    findInput.value = highlightText;
+                                    const enterEvent = new KeyboardEvent('keydown', {
+                                        key: 'Enter',
+                                        bubbles: true
+                                    });
+                                    findInput.dispatchEvent(enterEvent);
+                                    console.log('Search executed via keyboard simulation');
+                                }
+                            }, 100);
+                            return;
+                        } catch (e) {
+                            console.warn('Keyboard simulation failed:', e);
+                        }
+
+                        console.warn('All direct methods failed, using URL fallback');
+                        performUrlSearch();
                     } else {
-                        console.warn('PDF.js findController not available');
+                        console.warn('PDF.js findController not available, using URL fallback');
+                        performUrlSearch();
                     }
                 } catch (error) {
-                    console.warn('Direct API approach failed:', error);
+                    console.warn('Direct API search failed:', error);
+                    performUrlSearch();
                 }
+            };
 
-                // Approach 3: Enhanced URL-based search (most reliable)
-                setTimeout(() => {
-                    try {
-                        console.log('Attempting URL-based search with page constraint...');
-                        const currentSrc = pdfFrame.src;
-                        const basePath = currentSrc.split('#')[0];
-                        const searchQuery = encodeURIComponent(highlightText);
-                        // Use phrase search to be more precise, add zoom, and limit to first match
-                        const newSrc = `${basePath}#page=${pageNumber}&search="${searchQuery}"&zoom=125`;
-                        console.log('New URL:', newSrc);
-                        // Only update if different to avoid reload loop
-                        if (pdfFrame.src !== newSrc) {
-                            pdfFrame.src = newSrc;
-                            console.log('URL updated with page-constrained search parameter');
-                        }
-                    } catch (error) {
-                        console.warn('URL fallback approach failed:', error);
-                    }
-                }, 600); // Reduced from 1500ms
-            }, 300); // Reduced from 800ms
-        }, 500); // Reduced from 1200ms - faster response time
+            // URL-based search fallback with exact phrase matching
+            const performUrlSearch = () => {
+                try {
+                    console.log('Using URL-based exact phrase search...');
+                    const currentSrc = pdfFrame.src;
+                    const basePath = currentSrc.split('#')[0];
+
+                    // Simple approach: add search term directly to URL
+                    const searchQuery = encodeURIComponent(highlightText);
+                    const newSrc = `${basePath}#page=${pageNumber}&search=${searchQuery}&zoom=125`;
+
+                    console.log('New URL with search:', newSrc);
+                    console.log('Original text to match:', highlightText);
+
+                    // Force reload with new search
+                    pdfFrame.src = newSrc;
+                    console.log('URL updated with search parameters');
+                } catch (error) {
+                    console.warn('URL search approach failed:', error);
+                }
+            };
+
+            // Execute search when PDF is fully ready
+            const executeWhenReady = () => {
+                const viewer = pdfFrame.contentWindow?.PDFViewerApplication;
+                if (viewer && viewer.pdfDocument && viewer.pdfViewer && viewer.findController) {
+                    console.log('PDF.js fully loaded, executing search...');
+                    performExactSearch();
+                } else {
+                    console.log('PDF.js not fully ready, waiting...');
+                    setTimeout(executeWhenReady, 300);
+                }
+            };
+
+            // Start checking when iframe content is ready
+            if (pdfFrame.contentDocument && pdfFrame.contentDocument.readyState === 'complete') {
+                executeWhenReady();
+            } else {
+                pdfFrame.onload = executeWhenReady;
+            }
+
+        } catch (error) {
+            console.warn('Error in exact text search:', error);
+        }
     } else {
         console.error('PDF frame not found for evidenceId:', evidenceId);
     }
@@ -299,17 +357,26 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
             const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
             if (pdfFrame) {
                 pdfFrame.onload = function () {
-                    setTimeout(() => {
-                        // Apply initial highlights if available
-                        if (highlightInfo.length > 0) {
-                            const firstHighlight = highlightInfo[0];
-                            if (firstHighlight.text && firstHighlight.page) {
-                                console.log('Applying initial highlight on load...');
-                                // Use our improved jumpToPageWithHighlight function
-                                jumpToPageWithHighlight(evidenceId, firstHighlight.page, firstHighlight.text);
-                            }
+                    // Apply initial highlights if available
+                    if (highlightInfo.length > 0) {
+                        const firstHighlight = highlightInfo[0];
+                        if (firstHighlight.text && firstHighlight.page) {
+                            console.log('Applying initial highlight on load...');
+
+                            // Check if PDF.js is ready, if not, wait for it
+                            const checkAndApplyHighlight = () => {
+                                if (pdfFrame.contentWindow && pdfFrame.contentWindow.PDFViewerApplication) {
+                                    // PDF.js is ready, apply highlight immediately
+                                    jumpToPageWithHighlight(evidenceId, firstHighlight.page, firstHighlight.text);
+                                } else {
+                                    // PDF.js not ready yet, wait a bit and try again
+                                    setTimeout(checkAndApplyHighlight, 200);
+                                }
+                            };
+
+                            checkAndApplyHighlight();
                         }
-                    }, 1500); // Reduced from 3000ms - faster initial load
+                    }
                 };
             }
         }

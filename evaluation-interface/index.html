@@ -15,12 +15,6 @@
                 <h1>Scientific Claim Assessment Interface</h1>
                 <p>Expert evaluation tool for AI-generated scientific claim explanations and evidence</p>
             </div>
-            <div>
-                <button onclick="resetApiKey()" class="btn" style="background: #f39c12; color: white; border: none;"
-                    title="Clear stored OpenAI API key">
-                    🔑 Reset API Key
-                </button>
-            </div>
         </div>
     </div>
 
@@ -111,8 +105,7 @@
     </div>
 
     <!-- Load configuration and main script -->
-    <script src="config.js"></script>
-    <script src="local-config.js" onerror="console.log('No local config found - using default settings')"></script>
+    <script src="trajectory_flow.js"></script>
     <script src="script.js"></script>
     <script src="code_explanation.js"></script>
     <script src="pdf_controls.js"></script>
