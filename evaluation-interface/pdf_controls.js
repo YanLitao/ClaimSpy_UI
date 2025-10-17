@@ -1,5 +1,6 @@
 // PDF Control Functions for Enhanced PDF Viewer
 let pdfZoomLevels = {}; // Store zoom levels for each PDF
+let activeHighlights = {}; // Store active highlights for repositioning on zoom
 
 // Zoom PDF function using PDF.js
 function zoomPDF(evidenceId, direction) {
@@ -30,6 +31,11 @@ function zoomPDF(evidenceId, direction) {
                 type: 'setZoom',
                 zoom: zoomValue
             }, '*');
+
+            // Reposition highlights after zoom change
+            setTimeout(() => {
+                repositionHighlights(evidenceId);
+            }, 500); // Wait for zoom to complete
         } catch (error) {
             console.warn('Could not communicate with PDF.js viewer:', error);
             // Fallback: update iframe src with new zoom
@@ -38,6 +44,11 @@ function zoomPDF(evidenceId, direction) {
             const pageMatch = currentSrc.match(/page=(\d+)/);
             const currentPage = pageMatch ? pageMatch[1] : '1';
             pdfFrame.src = `${basePath}#page=${currentPage}&zoom=${newZoom}`;
+
+            // Reposition highlights after iframe reload
+            setTimeout(() => {
+                repositionHighlights(evidenceId);
+            }, 1000);
         }
     }
 }
@@ -87,16 +98,251 @@ function jumpToPage(evidenceId, pageNumber) {
     }
 }
 
-// Jump to page with specific highlight using exact text matching
-function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
-    console.log(`jumpToPageWithHighlight called: evidenceId=${evidenceId}, page=${pageNumber}, text=${highlightText}`);
+// Apply all highlights to the PDF at once
+async function applyAllHighlights(evidenceId, highlightInfo) {
+    const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
+    if (!pdfFrame) {
+        console.error('PDF frame not found for evidenceId:', evidenceId);
+        return;
+    }
 
+    // Find the first highlight page and jump to it
+    const firstHighlight = highlightInfo.find(h => h.page);
+    const startPage = firstHighlight ? firstHighlight.page : 1;
+
+    jumpToPage(evidenceId, startPage);
+
+    // Apply text layer-based precise highlighting and wait for completion
+    const highlightingSuccess = await applyHighlightsViaPDFJS(evidenceId, highlightInfo);
+
+    // Only scroll to highlights if highlighting was successful
+    if (highlightingSuccess) {
+        scrollToFirstHighlight(evidenceId);
+    }
+} async function applyHighlightsViaPDFJS(evidenceId, highlightInfo) {
+    const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
+    if (!pdfFrame || !pdfFrame.contentWindow) return;
+
+    // Store highlight info for repositioning on zoom
+    activeHighlights[evidenceId] = highlightInfo;
+
+    // Wait for PDF.js to be fully loaded
+    const waitForPDFReady = () => {
+        return new Promise((resolve, reject) => {
+            const maxAttempts = 30;
+            let attempts = 0;
+
+            const checkReady = () => {
+                const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
+                if (pdfViewer && pdfViewer.pdfDocument) {
+                    resolve(pdfViewer);
+                } else if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(checkReady, 200);
+                } else {
+                    reject(new Error('PDF.js not ready after maximum attempts'));
+                }
+            };
+
+            checkReady();
+        });
+    };
+
+    try {
+        const pdfViewer = await waitForPDFReady();
+
+        // Process each highlight and wait for completion
+        const highlightPromises = [];
+        for (const highlight of highlightInfo) {
+            if (!highlight.text || !highlight.page) continue;
+
+            try {
+                const promise = highlightTextOnPage(pdfViewer, highlight.page, highlight.text, evidenceId);
+                highlightPromises.push(promise);
+            } catch (error) {
+                console.warn(`Failed to highlight "${highlight.text}" on page ${highlight.page}:`, error);
+            }
+        }
+
+        // Wait for all highlights to be processed
+        await Promise.all(highlightPromises);
+
+        return true; // Indicate successful completion
+
+    } catch (error) {
+        console.warn('Error in text layer highlighting:', error);
+        return false;
+    }
+}// 在指定页面上精确高亮文本
+async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId) {
+    try {
+        // 获取页面对象
+        const page = await pdfViewer.pdfDocument.getPage(pageNumber);
+        const textContent = await page.getTextContent();
+
+        // 提取所有文本内容
+        const textItems = textContent.items;
+        let fullText = '';
+        let itemPositions = [];
+
+        // 构建完整文本并记录每个字符的位置信息
+        textItems.forEach((item, itemIndex) => {
+            const startPos = fullText.length;
+            fullText += item.str;
+            const endPos = fullText.length;
+
+            itemPositions.push({
+                itemIndex,
+                startPos,
+                endPos,
+                transform: item.transform,
+                str: item.str,
+                fontName: item.fontName,
+                height: item.height,
+                width: item.width
+            });
+
+            // 添加空格分隔（如果需要）
+            if (itemIndex < textItems.length - 1) {
+                fullText += ' ';
+                itemPositions.push({
+                    itemIndex: -1, // 空格标记
+                    startPos: fullText.length - 1,
+                    endPos: fullText.length,
+                    isSpace: true
+                });
+            }
+        });
+
+        // 查找匹配的文本
+        const searchIndex = fullText.toLowerCase().indexOf(searchText.toLowerCase());
+        if (searchIndex === -1) {
+            console.warn(`Text "${searchText}" not found on page ${pageNumber}`);
+            return;
+        }
+
+        // 找到匹配文本的位置信息
+        const matchEndIndex = searchIndex + searchText.length;
+        const matchingItems = itemPositions.filter(pos =>
+            !pos.isSpace &&
+            pos.startPos < matchEndIndex &&
+            pos.endPos > searchIndex
+        );
+
+        if (matchingItems.length > 0) {
+            // 创建高亮覆盖层
+            await createHighlightOverlay(pdfViewer, pageNumber, matchingItems, evidenceId);
+        }
+
+    } catch (error) {
+        console.error(`Error highlighting text on page ${pageNumber}:`, error);
+    }
+}
+
+// Reposition highlights after zoom changes
+async function repositionHighlights(evidenceId) {
+    const highlightInfo = activeHighlights[evidenceId];
+    if (!highlightInfo || highlightInfo.length === 0) {
+        return;
+    }
+
+    // Clear existing highlights
+    clearHighlights(evidenceId);
+
+    // Reapply highlights with new zoom level
+    const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
+    if (!pdfFrame || !pdfFrame.contentWindow) return;
+
+    try {
+        const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
+        if (!pdfViewer || !pdfViewer.pdfDocument) {
+            console.warn('PDF.js document not available for repositioning');
+            return;
+        }
+
+        // Reprocess each highlight
+        for (const highlight of highlightInfo) {
+            if (!highlight.text || !highlight.page) continue;
+
+            try {
+                await highlightTextOnPage(pdfViewer, highlight.page, highlight.text, evidenceId);
+            } catch (error) {
+                console.warn(`Failed to reposition highlight "${highlight.text}" on page ${highlight.page}:`, error);
+            }
+        }
+
+    } catch (error) {
+        console.warn('Error repositioning highlights:', error);
+    }
+}
+
+// Clear existing highlights
+function clearHighlights(evidenceId) {
+    const highlightElements = document.querySelectorAll(`.custom-highlight-${evidenceId}`);
+    highlightElements.forEach(element => {
+        element.remove();
+    });
+}
+
+// 创建高亮覆盖层
+async function createHighlightOverlay(pdfViewer, pageNumber, textItems, evidenceId) {
+    try {
+        // 获取页面容器
+        const pageView = pdfViewer.pdfViewer.getPageView(pageNumber - 1);
+        if (!pageView || !pageView.div) {
+            console.warn(`Page view not found for page ${pageNumber}`);
+            return;
+        }
+
+        const pageContainer = pageView.div;
+        const viewport = pageView.viewport;
+
+        // 为每个文本项创建高亮矩形
+        textItems.forEach((item, index) => {
+            const transform = item.transform;
+            if (!transform || transform.length < 6) return;
+
+            // PDF坐标转换为屏幕坐标
+            const x = transform[4];
+            const y = transform[5];
+            const width = item.width || 50; // 默认宽度
+            const height = item.height || 12; // 默认高度
+
+            // 转换坐标系（PDF坐标系Y轴向上，DOM坐标系Y轴向下）
+            const screenCoords = viewport.convertToViewportPoint(x, y);
+            const screenX = screenCoords[0];
+            const screenY = screenCoords[1] - height; // 调整Y坐标
+
+            // 创建高亮元素
+            const highlightDiv = document.createElement('div');
+            highlightDiv.className = `custom-highlight-${evidenceId}`;
+            highlightDiv.style.cssText = `
+                position: absolute;
+                left: ${screenX}px;
+                top: ${screenY}px;
+                width: ${width * viewport.scale}px;
+                height: ${height * viewport.scale}px;
+                background-color: rgba(255, 255, 0, 0.3);
+                border: 1px solid rgba(255, 193, 7, 0.8);
+                pointer-events: none;
+                z-index: 100;
+                border-radius: 2px;
+            `;
+
+            pageContainer.appendChild(highlightDiv);
+        });
+
+    } catch (error) {
+        console.error('Error creating highlight overlay:', error);
+    }
+}
+
+function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
     // First jump to the specified page
     jumpToPage(evidenceId, pageNumber);
 
     // Then perform exact text search on that page
     const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
-    console.log('PDF frame found:', !!pdfFrame);
 
     if (pdfFrame && pdfFrame.contentWindow) {
         try {
@@ -105,9 +351,6 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
                 try {
                     const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
                     if (pdfViewer && pdfViewer.findController) {
-                        console.log('PDF.js findController found, executing exact text search...');
-                        console.log('Available methods:', Object.keys(pdfViewer.findController));
-
                         // Clear previous search
                         if (typeof pdfViewer.findController.reset === 'function') {
                             pdfViewer.findController.reset();
@@ -129,11 +372,9 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
                             // Execute the search
                             if (typeof pdfViewer.findController.executeCommand === 'function') {
                                 pdfViewer.findController.executeCommand('find');
-                                console.log('Search executed via state + executeCommand');
                                 return;
                             } else if (typeof pdfViewer.findController._search === 'function') {
                                 pdfViewer.findController._search();
-                                console.log('Search executed via _search()');
                                 return;
                             }
                         } catch (e) {
@@ -148,7 +389,6 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
                                 // Trigger the search event
                                 const event = new Event('input', { bubbles: true });
                                 findInput.dispatchEvent(event);
-                                console.log('Search executed via findBar input');
                                 return;
                             }
                         } catch (e) {
@@ -174,7 +414,6 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
                                         bubbles: true
                                     });
                                     findInput.dispatchEvent(enterEvent);
-                                    console.log('Search executed via keyboard simulation');
                                 }
                             }, 100);
                             return;
@@ -197,7 +436,6 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
             // URL-based search fallback with exact phrase matching
             const performUrlSearch = () => {
                 try {
-                    console.log('Using URL-based exact phrase search...');
                     const currentSrc = pdfFrame.src;
                     const basePath = currentSrc.split('#')[0];
 
@@ -205,12 +443,8 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
                     const searchQuery = encodeURIComponent(highlightText);
                     const newSrc = `${basePath}#page=${pageNumber}&search=${searchQuery}&zoom=125`;
 
-                    console.log('New URL with search:', newSrc);
-                    console.log('Original text to match:', highlightText);
-
                     // Force reload with new search
                     pdfFrame.src = newSrc;
-                    console.log('URL updated with search parameters');
                 } catch (error) {
                     console.warn('URL search approach failed:', error);
                 }
@@ -220,10 +454,8 @@ function jumpToPageWithHighlight(evidenceId, pageNumber, highlightText) {
             const executeWhenReady = () => {
                 const viewer = pdfFrame.contentWindow?.PDFViewerApplication;
                 if (viewer && viewer.pdfDocument && viewer.pdfViewer && viewer.findController) {
-                    console.log('PDF.js fully loaded, executing search...');
                     performExactSearch();
                 } else {
-                    console.log('PDF.js not fully ready, waiting...');
                     setTimeout(executeWhenReady, 300);
                 }
             };
@@ -292,22 +524,19 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
         const fileViewerHtml = `
             <div class="pdf-viewer-container" id="pdfContainer_${evidenceId}">
                 <div class="pdf-header">
-                    <h4>📄 ${evidenceMapping.filename}</h4>
+                    <h4>${evidenceMapping.filename}</h4>
                     <div class="pdf-info">
-                        <small>Evidence ID: ${evidenceId}</small>
                         ${evidenceMapping.original_url ? `<br><small>Original: <a href="${evidenceMapping.original_url}" target="_blank">${evidenceMapping.original_url}</a></small>` : ''}
-                        ${isPDF && highlightPage > 1 ? `<br><small>Auto-jump to page: ${highlightPage}</small>` : ''}
-                        ${highlightInfo.length > 0 ? `<br><small>Highlights: ${highlightInfo.length} items</small>` : ''}
                     </div>
                     <div class="pdf-actions">
                         <button onclick="openPDFInNewTab('${filePath}')" class="btn btn-small">
-                            🔗 Open in New Tab
+                            Open in New Tab
                         </button>
                     </div>
                 </div>
                 <div class="pdf-content" id="pdfContent_${evidenceId}">
                     ${isPDF ?
-                `<iframe src="/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}#page=${highlightPage}&zoom=page-fit" 
+                `<iframe src="/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}#page=${highlightPage}&zoom=200" 
                         id="pdfFrame_${evidenceId}" 
                         width="100%" 
                         height="600px" 
@@ -324,23 +553,6 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                 <div class="citation-info">
                     <h5>Citation Information:</h5>
                     <p>${evidenceMapping.citation || 'No citation available'}</p>
-                    ${highlightInfo.length > 0 ? `
-                        <div class="highlight-info">
-                            <h6>Highlights:</h6>
-                            <div class="highlight-list">
-                                ${highlightInfo.map((highlight, index) => {
-                const safeText = highlight.text.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-                return `
-                                    <div class="highlight-item" onclick="jumpToPageWithHighlight('${evidenceId}', ${highlight.page}, '${safeText}')" style="cursor: pointer; padding: 10px; margin: 6px 0; border: 2px solid #ffc107; border-radius: 6px; background: #fff9c4; transition: all 0.2s ease;">
-                                        <span class="highlight-page" style="font-weight: bold; color: #856404; font-size: 0.9rem;">📄 Page ${highlight.page}:</span>
-                                        <span class="highlight-text" style="background-color: #ffeb3b; padding: 4px 8px; border-radius: 4px; margin-left: 8px; border: 1px solid #ffc107; display: inline-block; margin-top: 4px;">${highlight.text}</span>
-                                        <div style="font-size: 0.8rem; color: #6c757d; margin-top: 4px;">🎯 Click to jump and highlight in PDF</div>
-                                    </div>
-                                `;
-            }).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
                 </div>
             </div>
         `;
@@ -351,31 +563,26 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
 
         // Initialize zoom level and setup PDF.js communication
         if (isPDF) {
-            pdfZoomLevels[evidenceId] = 100;
+            pdfZoomLevels[evidenceId] = 200; // Set to 200% zoom
 
             // Setup PDF.js viewer communication after iframe loads
             const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
             if (pdfFrame) {
                 pdfFrame.onload = function () {
-                    // Apply initial highlights if available
+                    // Apply all highlights if available
                     if (highlightInfo.length > 0) {
-                        const firstHighlight = highlightInfo[0];
-                        if (firstHighlight.text && firstHighlight.page) {
-                            console.log('Applying initial highlight on load...');
+                        // Check if PDF.js is ready, if not, wait for it
+                        const checkAndApplyAllHighlights = async () => {
+                            if (pdfFrame.contentWindow && pdfFrame.contentWindow.PDFViewerApplication) {
+                                // PDF.js is ready, apply all highlights
+                                await applyAllHighlights(evidenceId, highlightInfo);
+                            } else {
+                                // PDF.js not ready yet, wait a bit and try again
+                                setTimeout(checkAndApplyAllHighlights, 200);
+                            }
+                        };
 
-                            // Check if PDF.js is ready, if not, wait for it
-                            const checkAndApplyHighlight = () => {
-                                if (pdfFrame.contentWindow && pdfFrame.contentWindow.PDFViewerApplication) {
-                                    // PDF.js is ready, apply highlight immediately
-                                    jumpToPageWithHighlight(evidenceId, firstHighlight.page, firstHighlight.text);
-                                } else {
-                                    // PDF.js not ready yet, wait a bit and try again
-                                    setTimeout(checkAndApplyHighlight, 200);
-                                }
-                            };
-
-                            checkAndApplyHighlight();
-                        }
+                        checkAndApplyAllHighlights();
                     }
                 };
             }
@@ -408,14 +615,17 @@ window.addEventListener('message', function (event) {
             if (zoomLevelSpan) {
                 zoomLevelSpan.textContent = `${Math.round(zoom * 100)}%`;
             }
+
+            // Reposition highlights when zoom changes from PDF.js controls
+            setTimeout(() => {
+                repositionHighlights(evidenceId);
+            }, 300);
         }
     }
 }, false);
 
 // Error handling for PDF.js iframe
 function handlePDFFrameLoad(evidenceId) {
-    console.log(`PDF frame loaded for evidence ${evidenceId}`);
-
     const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
     if (pdfFrame && pdfFrame.contentWindow) {
         try {
@@ -446,12 +656,143 @@ function handlePDFFrameLoad(evidenceId) {
             }
         } catch (error) {
             // Ignore cross-origin errors - this is expected
-            console.log('Could not access PDF.js iframe content (cross-origin) - this is normal');
         }
     }
+
+    // No longer need setTimeout since we wait for highlights to complete
+    // The scroll will be triggered automatically after highlights are applied
 }
 
-function handlePDFFrameError(evidenceId) {
+// Enhanced scroll to first highlight with better timing and error handling
+function scrollToFirstHighlight(evidenceId) {
+    const highlightInfo = activeHighlights[evidenceId];
+    if (!highlightInfo || highlightInfo.length === 0) {
+        return;
+    }
+
+    const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
+    if (!pdfFrame || !pdfFrame.contentWindow) {
+        return;
+    }
+
+    // Enhanced waiting mechanism with better error handling
+    const waitForHighlightsAndScroll = (attempts = 0) => {
+        const maxAttempts = 20; // Increased max attempts
+
+        try {
+            const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
+            if (!pdfViewer || !pdfViewer.pdfDocument || !pdfViewer.pdfViewer) {
+                if (attempts < maxAttempts) {
+                    setTimeout(() => waitForHighlightsAndScroll(attempts + 1), 400);
+                    return;
+                } else {
+                    console.warn('PDF.js not ready after maximum attempts');
+                    return;
+                }
+            }
+
+            // Find the first highlight
+            const firstHighlight = highlightInfo.find(h => h.text && h.page);
+            if (!firstHighlight) {
+                return;
+            }
+
+            // Get the page view for the first highlight
+            const pageView = pdfViewer.pdfViewer.getPageView(firstHighlight.page - 1);
+            if (!pageView || !pageView.div) {
+                if (attempts < maxAttempts) {
+                    setTimeout(() => waitForHighlightsAndScroll(attempts + 1), 400);
+                    return;
+                } else {
+                    console.warn(`Page view not found after maximum attempts`);
+                    return;
+                }
+            }
+
+            // Look for highlight elements in the page
+            const highlightElements = pageView.div.querySelectorAll(`.custom-highlight-${evidenceId}`);
+
+            if (highlightElements.length > 0) {
+                // Found highlights - scroll to the first one
+                const firstHighlightElement = highlightElements[0];
+
+                // Try multiple scrolling approaches for better compatibility
+                const performScroll = () => {
+                    // Method 1: Use PDF viewer container scroll (most reliable)
+                    const viewerContainer = pdfViewer.pdfViewer.container;
+                    if (viewerContainer) {
+                        try {
+                            const containerRect = viewerContainer.getBoundingClientRect();
+                            const highlightRect = firstHighlightElement.getBoundingClientRect();
+
+                            // Calculate scroll position to center the highlight
+                            const scrollTop = viewerContainer.scrollTop +
+                                (highlightRect.top - containerRect.top) -
+                                (containerRect.height / 3); // Position at top third instead of center
+
+                            viewerContainer.scrollTo({
+                                top: Math.max(0, scrollTop),
+                                behavior: 'smooth'
+                            });
+
+                            return true;
+                        } catch (scrollError) {
+                            console.warn('Container scroll failed:', scrollError);
+                        }
+                    }
+
+                    // Method 2: Fallback to element scrollIntoView
+                    try {
+                        firstHighlightElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                            inline: 'nearest'
+                        });
+                        return true;
+                    } catch (scrollError) {
+                        console.warn('scrollIntoView failed:', scrollError);
+                        return false;
+                    }
+                };
+
+                // Perform the scroll
+                if (!performScroll()) {
+                    console.warn('All scroll methods failed');
+                }
+
+            } else if (attempts < maxAttempts) {
+                // No highlights found yet - wait longer
+                setTimeout(() => waitForHighlightsAndScroll(attempts + 1), 400);
+            } else {
+                // No highlights found after waiting - scroll to page
+                try {
+                    const viewerContainer = pdfViewer.pdfViewer.container;
+                    if (viewerContainer && pageView.div) {
+                        const containerRect = viewerContainer.getBoundingClientRect();
+                        const pageRect = pageView.div.getBoundingClientRect();
+                        const scrollTop = viewerContainer.scrollTop + (pageRect.top - containerRect.top);
+
+                        viewerContainer.scrollTo({
+                            top: Math.max(0, scrollTop),
+                            behavior: 'smooth'
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Page scroll failed:', error);
+                }
+            }
+
+        } catch (error) {
+            console.warn('Error in enhanced scroll function:', error);
+            if (attempts < maxAttempts) {
+                setTimeout(() => waitForHighlightsAndScroll(attempts + 1), 400);
+            }
+        }
+    };
+
+    // Start the enhanced waiting process
+    waitForHighlightsAndScroll();
+} function handlePDFFrameError(evidenceId) {
     console.error(`PDF frame failed to load for evidence ${evidenceId}`);
     const pdfContent = document.getElementById(`pdfContent_${evidenceId}`);
     if (pdfContent) {
@@ -466,7 +807,6 @@ function handlePDFFrameError(evidenceId) {
 
 // Open PDF in new tab
 function openPDFInNewTab(filePath) {
-    console.log('Opening PDF in new tab:', filePath);
     const newTabUrl = `/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}`;
     window.open(newTabUrl, '_blank');
 }
@@ -474,7 +814,14 @@ function openPDFInNewTab(filePath) {
 // Make functions globally accessible
 window.handlePDFFrameLoad = handlePDFFrameLoad;
 window.handlePDFFrameError = handlePDFFrameError;
+window.scrollToFirstHighlight = scrollToFirstHighlight;
 window.showLocalPDF = showLocalPDF;
+window.applyAllHighlights = applyAllHighlights;
+window.applyHighlightsViaPDFJS = applyHighlightsViaPDFJS;
+window.highlightTextOnPage = highlightTextOnPage;
+window.createHighlightOverlay = createHighlightOverlay;
+window.repositionHighlights = repositionHighlights;
+window.clearHighlights = clearHighlights;
 window.jumpToPageWithHighlight = jumpToPageWithHighlight;
 window.jumpToPage = jumpToPage;
 window.zoomPDF = zoomPDF;

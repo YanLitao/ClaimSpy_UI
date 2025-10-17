@@ -8,26 +8,30 @@ let isTrajectoryFlowVisible = false;
 // Initialize trajectory flow system
 function initTrajectoryFlow() {
     // This will be called when the page loads to set up event listeners
-    console.log('Trajectory flow system initialized');
 }
 
 // Load trajectory and mapping data
 function loadTrajectoryFlowData(trajectory, mapping) {
     flowTrajectoryData = trajectory;
     flowMappingData = mapping;
-    console.log('Trajectory flow data loaded:', { trajectory: !!trajectory, mapping: !!mapping });
 }
 
 // Show trajectory flow in left panel
 function showTrajectoryFlow(explanationIndex = null) {
     if (!flowTrajectoryData || !flowMappingData) {
-        console.error('Trajectory or mapping data not available');
+        console.error('Trajectory or mapping data not loaded');
         return;
     }
 
     const leftPanel = document.getElementById('leftPanel');
     if (!leftPanel) {
         console.error('Left panel not found');
+        return;
+    }
+
+    // Check if trajectory is currently visible and toggle if so
+    if (isTrajectoryFlowVisible) {
+        hideTrajectoryFlow();
         return;
     }
 
@@ -57,9 +61,6 @@ function showTrajectoryFlow(explanationIndex = null) {
             </div>
         </div>
     `;
-
-    // Add CSS for trajectory flow if not already added
-    addTrajectoryFlowCSS();
 
     // Draw arrows after a short delay to ensure elements are rendered
     setTimeout(() => {
@@ -94,8 +95,9 @@ function hideTrajectoryFlow() {
 
     const leftPanel = document.getElementById('leftPanel');
     if (leftPanel) {
-        // You may want to restore previous content here
-        // For now, just clear the content
+        // Collapse the left panel
+        leftPanel.classList.remove('expanded');
+        // Clear the content
         leftPanel.innerHTML = '<div class="welcome-message">Select an item to view details</div>';
     }
 }
@@ -370,264 +372,15 @@ function hideJsonContent() {
     }
 }
 
-// Add CSS for trajectory flow
-function addTrajectoryFlowCSS() {
-    if (document.getElementById('trajectory-flow-css')) {
-        return; // CSS already added
-    }
+// Draw arrows between connected steps
+function drawFlowArrows() {
+    const svg = document.getElementById('flowArrows');
+    if (!svg) return;
 
-    const style = document.createElement('style');
-    style.id = 'trajectory-flow-css';
-    style.textContent = `
-        .trajectory-flow-container {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #f8f9fa;
-        }
-        
-        .trajectory-flow-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background: #fff;
-            border-bottom: 1px solid #e9ecef;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .trajectory-flow-header h3 {
-            margin: 0;
-            color: #2c3e50;
-            font-size: 1.1rem;
-        }
-        
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0.25rem 0.5rem;
-            color: #6c757d;
-            border-radius: 4px;
-        }
-        
-        .close-btn:hover {
-            background: #f8f9fa;
-            color: #495057;
-        }
-        
-        .trajectory-flow-content {
-            flex: 1;
-            overflow: auto;
-            padding: 1rem;
-            position: relative;
-        }
-        
-        .flow-diagram-container {
-            position: relative;
-            min-height: 100%;
-            width: 100%;
-        }
-        
-        .flow-arrows {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 5;
-        }
-        
-        .flow-diagram {
-            position: relative;
-            z-index: 2;
-            padding: 0 50px;
-            min-height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .step-node, .reasoning-node, .answer-node {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            background: #fff;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            padding: 0.75rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-            z-index: 3;
-        }
-        
-        .step-node:hover, .reasoning-node:hover, .answer-node:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateX(-50%) translateY(-2px);
-        }
-        
-        .step-node {
-            border-left: 4px solid #007bff;
-        }
-        
-        .reasoning-node {
-            border-left: 4px solid #6f42c1;
-        }
-        
-        .answer-node {
-            border-left: 4px solid #28a745;
-        }
-        
-        .step-header {
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            text-align: center;
-            padding-bottom: 0.25rem;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .step-content {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.75rem;
-            line-height: 1.3;
-        }
-        
-        .step-content:last-child {
-            margin-bottom: 0;
-        }
-        
-        .content-icon {
-            flex-shrink: 0;
-            font-size: 0.8rem;
-        }
-        
-        .content-text {
-            flex: 1;
-            color: #6c757d;
-            word-wrap: break-word;
-        }
-        
-        .thought-content .content-text {
-            color: #007bff;
-        }
-        
-        .tool-content .content-text {
-            color: #28a745;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-        }
-        
-        .obs-content .content-text {
-            color: #ffc107;
-            font-style: italic;
-        }
-        
-        .reasoning-content .content-text {
-            color: #6f42c1;
-        }
-        
-        .answer-content .content-text {
-            color: #28a745;
-        }
-        
-        .observation-items {
-            margin-top: 0.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-        }
-        
-        .obs-item-box {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 4px;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            max-width: 120px;
-        }
-        
-        .obs-item-box:hover {
-            background: #fff3cd;
-            border-color: #ffcd39;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
-        }
-        
-        .obs-item-index {
-            background: #ffc107;
-            color: #212529;
-            padding: 0.1rem 0.3rem;
-            border-radius: 2px;
-            font-weight: bold;
-            font-size: 0.65rem;
-            flex-shrink: 0;
-        }
-        
-        .obs-item-text {
-            color: #856404;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        }
-        
-        /* Arrow markers */
-        .flow-arrows defs {
-            display: none;
-        }
-        
-        /* Evidence connection lines */
-        .evidence-connection-line {
-            z-index: 1000 !important;
-            position: fixed !important;
-            overflow: visible !important;
-        }
-        
-        .evidence-connection-line line {
-            stroke: #ff6b6b !important;
-            stroke-width: 3 !important;
-            stroke-dasharray: 8,4 !important;
-            opacity: 0.9 !important;
-            animation: dash 2s linear infinite !important;
-        }
-        
-        @keyframes dash {
-            to {
-                stroke-dashoffset: -12;
-            }
-        }
-        
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .trajectory-flow-content {
-                padding: 0.5rem;
-            }
-            
-            .step-node, .reasoning-node {
-                width: 180px;
-            }
-            
-            .flow-diagram {
-                padding-left: 30px;
-            }
-        }
-    `;
+    // Clear existing arrows
+    svg.innerHTML = '';
 
-    // Add SVG arrow markers
+    // Add SVG arrow marker definitions
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
     // Blue arrowhead for regular connections
@@ -686,25 +439,7 @@ function addTrajectoryFlowCSS() {
     arrowheadRed.appendChild(arrowPathRed);
     defs.appendChild(arrowheadRed);
 
-    // Add defs to document
-    document.body.appendChild(defs);
-    setTimeout(() => {
-        const svg = document.getElementById('flowArrows');
-        if (svg && !svg.querySelector('defs')) {
-            svg.appendChild(defs.cloneNode(true));
-        }
-    }, 50);
-
-    document.head.appendChild(style);
-}
-
-// Draw arrows between connected steps
-function drawFlowArrows() {
-    const svg = document.getElementById('flowArrows');
-    if (!svg) return;
-
-    // Clear existing arrows
-    svg.innerHTML = '';
+    svg.appendChild(defs);
 
     const trajectory = flowTrajectoryData.trajectory || flowTrajectoryData;
     const stepDependencies = flowMappingData.step_dependencies || {};
@@ -755,10 +490,8 @@ function drawArrow(svg, fromStep, toStep, resultIndex) {
     // Handle connection from specific observation item if resultIndex is specified
     if (resultIndex !== null && resultIndex !== undefined) {
         fromElement = document.getElementById(`obs-${fromStep}-${resultIndex}`);
-        console.log(`Looking for obs element: obs-${fromStep}-${resultIndex}`, fromElement);
         // If specific observation item not found, fall back to step
         if (!fromElement) {
-            console.log(`Obs element not found, falling back to step-${fromStep}`);
             fromElement = document.getElementById(`step-${fromStep}`);
         }
     } else {
@@ -901,7 +634,6 @@ function drawEvidenceConnections(explanationIndex) {
     // Try to get mapping data from multiple sources
     const mappingData = flowMappingData || window.mappingData;
     if (!mappingData || !mappingData.evidence_to_trajectory) {
-        console.log('No evidence to trajectory mapping available');
         return;
     }
 
@@ -1001,15 +733,6 @@ function drawEvidenceConnectionLine(evidenceElement, trajectoryElement, evidence
     // Update line position
     updateEvidenceConnectionLine(evidenceElement, trajectoryElement, line);
 
-    console.log(`Drawing evidence connection from ${evidenceId}:`, {
-        evidenceElement,
-        trajectoryElement,
-        connectionSvg,
-        line,
-        evidenceRect: evidenceElement.getBoundingClientRect(),
-        trajectoryRect: trajectoryElement.getBoundingClientRect()
-    });
-
     // Store reference for updates
     if (!window.evidenceConnections) {
         window.evidenceConnections = new Map();
@@ -1028,17 +751,11 @@ function updateEvidenceConnectionLine(evidenceElement, trajectoryElement, lineEl
         const evidenceRect = evidenceElement.getBoundingClientRect();
         const trajectoryRect = trajectoryElement.getBoundingClientRect();
 
-        // Calculate connection points - evidence left to trajectory right
-        const startX = evidenceRect.left;
-        const startY = evidenceRect.top + evidenceRect.height / 2;
-        const endX = trajectoryRect.right;
-        const endY = trajectoryRect.top + trajectoryRect.height / 2;
-
-        console.log(`Updating connection line:`, {
-            evidenceRect,
-            trajectoryRect,
-            startX, startY, endX, endY
-        });
+        // Calculate connection points - trajectory to evidence (from trajectory right to evidence left)
+        const startX = trajectoryRect.right;
+        const startY = trajectoryRect.top + trajectoryRect.height / 2;
+        const endX = evidenceRect.left + evidenceRect.width / 2;
+        const endY = evidenceRect.top + evidenceRect.height / 2;
 
         lineElement.setAttribute('x1', startX);
         lineElement.setAttribute('y1', startY);
@@ -1134,12 +851,9 @@ window.trajectoryFlow = {
         svg.appendChild(line);
         document.body.appendChild(svg);
 
-        console.log('Test connection created:', svg, line);
-
         // Remove after 5 seconds
         setTimeout(() => {
             svg.remove();
-            console.log('Test connection removed');
         }, 5000);
     }
 };

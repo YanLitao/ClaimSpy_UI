@@ -807,6 +807,7 @@ async function displayExplanations(explanations) {
                                 </div>
                                 <div class="evidence-citation-row">
                                     <div class="evidence-citation">${evidence.citation}</div>
+                                    ${evidence.type && evidence.type.toLowerCase() === 'web search' ? `
                                     <button class="local-file-btn" onclick="event.stopPropagation(); viewLocalEvidence('${evidenceId}')" id="localBtn${evidenceId}" title="View local evidence file">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -817,6 +818,7 @@ async function displayExplanations(explanations) {
                                         </svg>
                                         📄
                                     </button>
+                                    ` : ''}
                                 </div>
                             </div>
                             ${simulationFilesHtml}
@@ -864,21 +866,39 @@ function markExplanation(index, status) {
 // Toggle evidence section
 function toggleEvidenceSection(index) {
     const evidenceSection = document.getElementById(`evidenceSection${index}`);
+    const isExpanding = !evidenceSection.classList.contains('expanded');
     evidenceSection.classList.toggle('expanded');
+
+    // If trajectory flow is visible, handle evidence connections
+    if (window.trajectoryFlow && window.trajectoryFlow.isVisible()) {
+        if (isExpanding) {
+            // Evidence section is being expanded - draw connections
+            setTimeout(() => {
+                window.trajectoryFlow.drawEvidenceConnections(index);
+            }, 100); // Wait for expansion animation
+        } else {
+            // Evidence section is being collapsed - clear connections
+            window.trajectoryFlow.clearEvidenceConnections();
+        }
+    }
 }
 
 // Show trajectory flow in left panel
 function showTrajectoryFlow(explanationIndex = null) {
-    console.log(`showTrajectoryFlow called with explanationIndex: ${explanationIndex}`);
-
-    // Expand evidence section if explanationIndex is provided
-    if (explanationIndex !== null) {
-        console.log(`Expanding evidence section for explanation ${explanationIndex}`);
-        toggleEvidenceSection(explanationIndex);
-    }
+    // Check if trajectory is currently visible
+    const isCurrentlyVisible = window.trajectoryFlow && window.trajectoryFlow.isVisible();
 
     if (window.trajectoryFlow && typeof window.trajectoryFlow.show === 'function') {
         window.trajectoryFlow.show(explanationIndex);
+
+        // If trajectory was just shown (not hidden), expand evidence section
+        if (!isCurrentlyVisible && explanationIndex !== null) {
+            console.log(`Expanding evidence section for explanation ${explanationIndex}`);
+            const evidenceSection = document.getElementById(`evidenceSection${explanationIndex}`);
+            if (evidenceSection && !evidenceSection.classList.contains('expanded')) {
+                toggleEvidenceSection(explanationIndex);
+            }
+        }
     } else {
         console.error('Trajectory flow module not loaded');
     }

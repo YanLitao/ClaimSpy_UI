@@ -30,26 +30,21 @@ document.addEventListener('DOMContentLoaded', function () {
             // Use a timeout to ensure the panel has finished expanding
             setTimeout(() => {
                 const rightWidth = rightPanel.offsetWidth;
-                console.log('Right panel width:', rightWidth);
                 if (rightWidth > 0) {
                     rightResizer.style.right = rightWidth + 'px';
-                    console.log('Right resizer positioned at:', rightWidth + 'px');
                 } else {
                     // Fallback to CSS default width
                     rightResizer.style.right = '400px';
-                    console.log('Right resizer positioned at fallback: 400px');
                 }
             }, 300);  // Increased timeout for better reliability
         } else {
             container.classList.remove('right-panel-expanded');
             rightResizer.style.display = 'none';
-            console.log('Right resizer hidden');
         }
     }
 
     // Watch for panel changes
     const observer = new MutationObserver((mutations) => {
-        console.log('Panel mutation observed:', mutations);
         updateResizeHandleVisibility();
     });
     if (leftPanel) observer.observe(leftPanel, { attributes: true, attributeFilter: ['class'] });
@@ -114,7 +109,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function stopResize(e) {
         if (!isResizing) return;
 
-        console.log('stopResize called');
         isResizing = false;
         if (currentResizer) {
             currentResizer.classList.remove('dragging');
@@ -132,6 +126,5 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             e.stopPropagation();
         }
-        console.log('Resize stopped, listeners removed');
     }
 });
