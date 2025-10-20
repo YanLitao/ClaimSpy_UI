@@ -8,6 +8,7 @@ let mappingData = null;
 let userApiKey = null;
 let apiKeyRemembered = false;
 let evidenceCache = new Map(); // Cache for scraped content and AI analysis
+let folderMetadata = new Map(); // Store folder metadata including run_type
 
 // Data directory configuration
 // Note: This path is now handled by the API server, so this constant is kept for reference only
@@ -36,9 +37,22 @@ async function loadAvailableFolders() {
                 if (typeof data.folders[0] === 'string') {
                     // Old format: array of strings
                     availableFolders = data.folders;
+                    // Assume dry-run for old format
+                    data.folders.forEach(folder => {
+                        folderMetadata.set(folder, { run_type: 'dry-run' });
+                    });
                 } else {
                     // New format: array of objects with metadata
                     availableFolders = data.folders.map(folder => folder.name || folder);
+                    // Store metadata
+                    data.folders.forEach(folder => {
+                        folderMetadata.set(folder.name || folder, {
+                            run_type: folder.run_type || 'dry-run',
+                            has_trajectory: folder.has_trajectory,
+                            has_mapping: folder.has_mapping,
+                            has_prediction: folder.has_prediction
+                        });
+                    });
                 }
             } else {
                 availableFolders = [];
@@ -148,7 +162,7 @@ function getProblemClaimForFolder(folderName) {
         'alloys_0002': 'Novel titanium-vanadium alloy exhibits biocompatibility and enhanced mechanical properties for medical implants.',
         'batteries_0001': 'Lithium-ion battery with silicon nanowire anodes achieves 4000 mAh/g capacity with stable cycling performance.',
         'batteries_0002': 'Solid-state electrolyte enables safer battery operation with energy density exceeding 400 Wh/kg.',
-        'computational_tools_0001': 'Machine learning model predicts material properties with 95% accuracy using only composition data.',
+        'computational_tools_0001': 'Al20Zn80 at 870K is a solid at equilibrium',
         'computational_tools_0002': 'Quantum Monte Carlo simulations accurately predict electronic band gaps in semiconductors.'
     };
 
@@ -354,9 +368,9 @@ function getRunTypeFromCurrentFolder() {
     const selectedFolder = dropdown.value;
     if (!selectedFolder) return null;
 
-    // For now, all folders in the current data directory are from dry-run
-    // In the future, this could be made more dynamic by including run type info in the API response
-    return 'dry-run';
+    // Get run type from stored metadata
+    const metadata = folderMetadata.get(selectedFolder);
+    return metadata ? metadata.run_type : 'dry-run';
 }
 
 // Get problem folder name from current selection
@@ -364,6 +378,13 @@ function getProblemFolderFromCurrentFolder() {
     const dropdown = document.getElementById('folderDropdown');
     const selectedFolder = dropdown.value;
     return selectedFolder; // The dropdown value is already the problem folder name
+}
+
+// Load simulation files from sandbox folder for a given evidence item
+async function loadSandboxFiles(evidenceId) {
+    // The API server automatically handles sandbox folder mapping
+    // So we can use the regular loadSimulationFiles function
+    return loadSimulationFiles(evidenceId);
 }
 
 // Load simulation files for a given evidence item
@@ -458,7 +479,9 @@ async function showSimulationFile(filename) {
     welcomeMessage.style.display = 'none';
 
     try {
+        // API server will automatically check sandbox folders
         const response = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${filename}`);
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -719,7 +742,8 @@ async function displayExplanations(explanations) {
         // Load all simulation files at once
         for (const evidenceId of simulationEvidence) {
             try {
-                const files = await loadSimulationFiles(evidenceId);
+                // Use loadSandboxFiles which will try sandbox first, then fallback to regular simulation files
+                const files = await loadSandboxFiles(evidenceId);
                 simulationFilesCache[evidenceId] = files;
             } catch (error) {
                 console.error(`Error loading simulation files for ${evidenceId}:`, error);

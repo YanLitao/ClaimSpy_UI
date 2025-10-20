@@ -70,6 +70,8 @@ function showTrajectoryFlow(explanationIndex = null) {
             // Wait a bit more for evidence section to be expanded
             setTimeout(() => {
                 drawEvidenceConnections(explanationIndex);
+                // Auto-scroll to relevant positions after connections are drawn
+                scrollToRelevantPositions(explanationIndex);
             }, 300);
         }
         // Set up scroll listeners for dynamic line updates
@@ -751,11 +753,11 @@ function updateEvidenceConnectionLine(evidenceElement, trajectoryElement, lineEl
         const evidenceRect = evidenceElement.getBoundingClientRect();
         const trajectoryRect = trajectoryElement.getBoundingClientRect();
 
-        // Calculate connection points - trajectory to evidence (from trajectory right to evidence left)
+        // Calculate connection points - trajectory to evidence (from trajectory right to evidence left side)
         const startX = trajectoryRect.right;
         const startY = trajectoryRect.top + trajectoryRect.height / 2;
-        const endX = evidenceRect.left + evidenceRect.width / 2;
-        const endY = evidenceRect.top + evidenceRect.height / 2;
+        const endX = evidenceRect.left; // Left edge of evidence item
+        const endY = evidenceRect.top + evidenceRect.height / 2; // Vertical center
 
         lineElement.setAttribute('x1', startX);
         lineElement.setAttribute('y1', startY);
@@ -813,6 +815,118 @@ function clearEvidenceConnections() {
     }
 }
 
+// Auto-scroll to relevant positions when trajectory flow is shown
+function scrollToRelevantPositions(explanationIndex) {
+    // Try to get mapping data from multiple sources
+    const mappingData = flowMappingData || window.mappingData;
+    if (!mappingData || !mappingData.evidence_to_trajectory) {
+        return;
+    }
+
+    const evidenceToTrajectory = mappingData.evidence_to_trajectory;
+    const evidenceSection = document.getElementById(`evidenceSection${explanationIndex}`);
+
+    if (!evidenceSection) {
+        return;
+    }
+
+    // Find the first evidence item in this explanation
+    const firstEvidenceItem = evidenceSection.querySelector('.evidence-item[data-evidence-id]');
+    if (!firstEvidenceItem) {
+        return;
+    }
+
+    const evidenceId = firstEvidenceItem.getAttribute('data-evidence-id');
+    const trajectoryMapping = evidenceToTrajectory[evidenceId];
+
+
+    if (trajectoryMapping && Array.isArray(trajectoryMapping)) {
+        const stepNumber = trajectoryMapping[0];
+        const observationIndex = trajectoryMapping.length > 1 ? trajectoryMapping[1] : null;
+
+        // Find the target step in trajectory flow
+        let targetStepElement;
+        if (observationIndex !== null) {
+            targetStepElement = document.querySelector(`#obs-${stepNumber}-${observationIndex}`);
+        }
+        if (!targetStepElement) {
+            targetStepElement = document.querySelector(`#step-${stepNumber}`);
+        }
+
+        if (targetStepElement) {
+            // Scroll trajectory flow (left panel) to show the target step
+            const leftPanel = document.getElementById('leftPanel');
+            if (leftPanel) {
+                // Use the correct scrollable container for trajectory flow
+                const leftPanelContent = leftPanel.querySelector('.trajectory-flow-content') ||
+                    leftPanel.querySelector('.left-panel-content') ||
+                    leftPanel;
+                const leftPanelRect = leftPanelContent.getBoundingClientRect();
+                const targetRect = targetStepElement.getBoundingClientRect();
+
+                // Calculate scroll position relative to the scrollable container
+                const relativeTop = targetRect.top - leftPanelRect.top;
+                const centerOffset = leftPanelRect.height / 2 - targetRect.height / 2;
+                const scrollTop = leftPanelContent.scrollTop + relativeTop - centerOffset;
+
+                console.log('Scrolling left panel to:', Math.max(0, scrollTop));
+                console.log('Using scroll container:', leftPanelContent.className);
+
+                // Force scroll even if smooth behavior fails
+                leftPanelContent.scrollTop = Math.max(0, scrollTop);
+
+                // Also try smooth scroll as fallback
+                setTimeout(() => {
+                    leftPanelContent.scrollTo({
+                        top: Math.max(0, scrollTop),
+                        behavior: 'smooth'
+                    });
+                }, 50);
+            }
+        }
+
+        // Scroll main content area to show the evidence item
+        setTimeout(() => {
+            // Try multiple approaches for main content scrolling
+            const mainContent = document.querySelector('.main-content') || document.querySelector('#contentArea');
+            const evidenceRect = firstEvidenceItem.getBoundingClientRect();
+
+            if (mainContent) {
+                const mainContentRect = mainContent.getBoundingClientRect();
+                const relativeTop = evidenceRect.top - mainContentRect.top;
+                const centerOffset = window.innerHeight / 2 - evidenceRect.height / 2;
+                const scrollTop = mainContent.scrollTop + relativeTop - centerOffset;
+
+                console.log('Scrolling main content to:', Math.max(0, scrollTop));
+                console.log('Using main content container:', mainContent.className);
+
+                // Force scroll
+                mainContent.scrollTop = Math.max(0, scrollTop);
+
+                // Try smooth scroll as well
+                setTimeout(() => {
+                    mainContent.scrollTo({
+                        top: Math.max(0, scrollTop),
+                        behavior: 'smooth'
+                    });
+                }, 50);
+            } else {
+                // Fallback to window scroll
+                const viewportTop = evidenceRect.top;
+                const centerOffset = window.innerHeight / 2 - evidenceRect.height / 2;
+                const scrollTop = window.scrollY + viewportTop - centerOffset;
+
+                console.log('Scrolling window to:', Math.max(0, scrollTop));
+
+                window.scrollTo({
+                    top: Math.max(0, scrollTop),
+                    behavior: 'smooth'
+                });
+            }
+        }, 300); // Increase delay to let left panel scroll first
+    }
+}
+
 
 
 // Export functions for use in other scripts
@@ -824,6 +938,7 @@ window.trajectoryFlow = {
     isVisible: isTrajectoryFlowCurrentlyVisible,
     drawEvidenceConnections: drawEvidenceConnections,
     clearEvidenceConnections: clearEvidenceConnections,
+    scrollToRelevantPositions: scrollToRelevantPositions,
     // Debug functions
     testDirectConnection: function () {
         // Create a simple test connection line

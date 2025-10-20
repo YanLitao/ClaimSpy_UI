@@ -5,6 +5,7 @@ Scientific Claim Assessment Interface API Server
 Provides REST API endpoints for:
 - Loading assessment result folders
 - Serving JSON data files (assessment, trajectory, mapping, predictions)
+- Serving evidence files (PDF, images, text files)
 - Serving static files (HTML, CSS, JS) with modular architecture support
 - CORS handling for cross-origin requests
 
@@ -26,7 +27,7 @@ from datetime import datetime
 SCRIPT_DIR = Path(__file__).parent.absolute()
 PROJECT_ROOT = SCRIPT_DIR.parent
 DATA_BASE_PATH = PROJECT_ROOT / 'data' / \
-    'sonnet45-full-run-codex-gpt5-1010' / 'output' / 'dry-run'
+    'sonnet45-full-run-codex-gpt5-1010' / 'output'
 SANDBOX_BASE_PATH = PROJECT_ROOT / 'data' / \
     'sonnet45-full-run-codex-gpt5-1010'
 STATIC_BASE_PATH = SCRIPT_DIR
@@ -88,7 +89,11 @@ class APIHandler(BaseHTTPRequestHandler):
             if parsed_url.path == '/api/folders':
                 self.handle_get_folders()
             elif parsed_url.path.startswith('/api/data/'):
-                self.handle_get_data(parsed_url.path)
+                # Check if this is an evidence file request
+                if '/evidences/' in parsed_url.path:
+                    self.handle_get_evidence_file(parsed_url.path)
+                else:
+                    self.handle_get_data(parsed_url.path)
             elif parsed_url.path.startswith('/api/simulation-files/'):
                 self.handle_get_simulation_files(parsed_url.path)
             elif parsed_url.path.startswith('/api/simulation-file/'):
@@ -122,7 +127,7 @@ class APIHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response).encode('utf-8'))
 
     def handle_get_folders(self):
-        """Return list of available result folders with metadata"""
+        """Return list of available result folders with metadata from all subdirectories"""
         try:
             folders = []
             data_path = Path(DATA_BASE_PATH)
@@ -138,18 +143,23 @@ class APIHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(response).encode('utf-8'))
                 return
 
-            for item in data_path.iterdir():
-                if item.is_dir():
-                    # Check if folder contains required files
-                    assessment_file = item / 'assessment.json'
-                    if assessment_file.exists():
-                        folder_info = {
-                            'name': item.name,
-                            'has_trajectory': (item / 'trajectory.json').exists(),
-                            'has_mapping': (item / 'mapping.json').exists(),
-                            'has_prediction': (item / 'likert_score_prediction.json').exists()
-                        }
-                        folders.append(folder_info)
+            # Scan all subdirectories for folders with assessment.json
+            for run_type_dir in data_path.iterdir():
+                if run_type_dir.is_dir():
+                    # Scan each run type directory (dry-run, drop1, drop2, drop4, etc.)
+                    for item in run_type_dir.iterdir():
+                        if item.is_dir():
+                            # Check if folder contains required files
+                            assessment_file = item / 'assessment.json'
+                            if assessment_file.exists():
+                                folder_info = {
+                                    'name': item.name,
+                                    'run_type': run_type_dir.name,
+                                    'has_trajectory': (item / 'trajectory.json').exists(),
+                                    'has_mapping': (item / 'mapping.json').exists(),
+                                    'has_prediction': (item / 'likert_score_prediction.json').exists()
+                                }
+                                folders.append(folder_info)
 
             # Sort by folder name
             folders.sort(key=lambda x: x['name'])
@@ -168,60 +178,26 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_error(500, f"Error reading folders: {e}")
 
     def handle_get_data(self, path):
-        """Handle data file requests like /api/data/alloys_0003/assessment.json or /api/data/dry-run/alloys_0003/evidences/file.pdf"""
+        """Handle data file requests like /api/data/computational_tools_0001/assessment.json"""
         try:
             # Extract path components
             path_parts = path.strip('/').split('/')
-            if len(path_parts) < 4 or path_parts[0] != 'api' or path_parts[1] != 'data':
+            if len(path_parts) != 4 or path_parts[0] != 'api' or path_parts[1] != 'data':
                 logging.warning(f"Invalid data path format: {path}")
                 self.send_error(
-                    400, "Invalid data path format. Expected: /api/data/{folder}/{filename} or /api/data/{run_type}/{folder}/evidences/{filename}")
+                    400, "Invalid data path format. Expected: /api/data/{folder}/{filename}")
                 return
 
-            # Handle different path formats
-            if len(path_parts) == 4:
-                # Original format: /api/data/{folder}/{filename}
-                folder = path_parts[2]
-                filename = path_parts[3]
-                file_path = Path(DATA_BASE_PATH) / folder / filename
-                is_evidence_file = False
-            elif len(path_parts) == 6 and path_parts[4] == 'evidences':
-                # New format: /api/data/{run_type}/{folder}/evidences/{filename}
-                run_type = path_parts[2]
-                folder = path_parts[3]
-                filename = path_parts[5]
+            folder = path_parts[2]
+            filename = path_parts[3]
 
-                # Map run_type to actual directory
-                if run_type == 'dry-run':
-                    base_path = Path(DATA_BASE_PATH)
-                else:
-                    base_path = Path(SANDBOX_BASE_PATH) / f'sandbox-{run_type}'
-
-                file_path = base_path / folder / 'evidences' / filename
-                is_evidence_file = True
-            else:
-                logging.warning(f"Invalid data path format: {path}")
-                self.send_error(400, "Invalid data path format")
+            # Check if data file is allowed
+            if filename not in ALLOWED_DATA_FILES:
+                logging.warning(
+                    f"Attempt to access disallowed file: {filename}")
+                self.send_error(
+                    400, f"File {filename} not allowed. Allowed files: {list(ALLOWED_DATA_FILES)}")
                 return
-
-            # Validate filename for security
-            if is_evidence_file:
-                # Check if evidence file extension is allowed
-                file_ext = Path(filename).suffix.lower()
-                if file_ext not in ALLOWED_EVIDENCE_EXTENSIONS:
-                    logging.warning(
-                        f"Attempt to access disallowed evidence file: {filename}")
-                    self.send_error(
-                        400, f"Evidence file {filename} not allowed. Allowed extensions: {list(ALLOWED_EVIDENCE_EXTENSIONS)}")
-                    return
-            else:
-                # Check if data file is allowed
-                if filename not in ALLOWED_DATA_FILES:
-                    logging.warning(
-                        f"Attempt to access disallowed file: {filename}")
-                    self.send_error(
-                        400, f"File {filename} not allowed. Allowed files: {list(ALLOWED_DATA_FILES)}")
-                    return
 
             # Validate folder name (basic security check)
             if not folder.replace('_', '').replace('-', '').isalnum():
@@ -229,51 +205,33 @@ class APIHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Invalid folder name")
                 return
 
-            # Security check: ensure path is within allowed base path
-            try:
-                if is_evidence_file:
-                    base_check_path = base_path if 'base_path' in locals() else Path(DATA_BASE_PATH)
-                else:
-                    base_check_path = Path(DATA_BASE_PATH)
-                file_path.resolve().relative_to(base_check_path.resolve())
-            except ValueError:
-                logging.error(f"Path traversal attempt: {file_path}")
-                self.send_error(403, "Access denied")
-                return
+            # Search for the folder in all run type directories
+            file_path = None
+            for run_type_dir in Path(DATA_BASE_PATH).iterdir():
+                if run_type_dir.is_dir():
+                    potential_path = run_type_dir / folder / filename
+                    if potential_path.exists():
+                        file_path = potential_path
+                        break
 
-            if not file_path.exists():
-                logging.info(f"File not found: {file_path}")
+            if file_path is None:
+                logging.info(
+                    f"File not found: {folder}/{filename} in any run type directory")
                 self.send_error(404, f"File not found: {filename}")
                 return
 
-            # Handle different file types
-            if is_evidence_file:
-                # Serve evidence files (PDF, images, etc.)
-                mime_type, _ = mimetypes.guess_type(str(file_path))
-                if mime_type is None:
-                    mime_type = 'application/octet-stream'
+            # Handle JSON files
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
 
-                self.send_response(200)
-                self.send_header('Content-Type', mime_type)
-                self.send_cors_headers()
-                self.end_headers()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_cors_headers()
+            self.end_headers()
 
-                with open(file_path, 'rb') as f:
-                    self.wfile.write(f.read())
-                logging.info(f"Served evidence file: {file_path}")
-            else:
-                # Handle JSON files
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_cors_headers()
-                self.end_headers()
-
-                self.wfile.write(json.dumps(
-                    data, ensure_ascii=False).encode('utf-8'))
-                logging.info(f"Served data file: {file_path}")
+            self.wfile.write(json.dumps(
+                data, ensure_ascii=False).encode('utf-8'))
+            logging.info(f"Served data file: {file_path}")
 
         except json.JSONDecodeError as e:
             logging.error(f"Invalid JSON in file {file_path}: {e}")
@@ -284,6 +242,71 @@ class APIHandler(BaseHTTPRequestHandler):
         except Exception as e:
             logging.error(f"Error reading data file {path}: {e}")
             self.send_error(500, f"Error reading file: {e}")
+
+    def handle_get_evidence_file(self, path):
+        """Handle evidence file requests like /api/data/alloys_0003/evidences/ev_baseline_kic.pdf"""
+        try:
+            # Extract path components
+            path_parts = path.strip('/').split('/')
+            if len(path_parts) != 5 or path_parts[0] != 'api' or path_parts[1] != 'data' or path_parts[3] != 'evidences':
+                logging.warning(f"Invalid evidence path format: {path}")
+                self.send_error(
+                    400, "Invalid evidence path format. Expected: /api/data/{folder}/evidences/{filename}")
+                return
+
+            folder = path_parts[2]
+            filename = path_parts[4]
+
+            # Check if evidence file extension is allowed
+            file_extension = Path(filename).suffix.lower()
+            if file_extension not in ALLOWED_EVIDENCE_EXTENSIONS:
+                logging.warning(
+                    f"Attempt to access disallowed evidence file: {filename}")
+                self.send_error(
+                    400, f"File type {file_extension} not allowed. Allowed extensions: {list(ALLOWED_EVIDENCE_EXTENSIONS)}")
+                return
+
+            # Validate folder name (basic security check)
+            if not folder.replace('_', '').replace('-', '').isalnum():
+                logging.warning(f"Invalid folder name: {folder}")
+                self.send_error(400, "Invalid folder name")
+                return
+
+            # Search for the folder in all run type directories
+            file_path = None
+            for run_type_dir in Path(DATA_BASE_PATH).iterdir():
+                if run_type_dir.is_dir():
+                    potential_path = run_type_dir / folder / 'evidences' / filename
+                    if potential_path.exists():
+                        file_path = potential_path
+                        break
+
+            if file_path is None:
+                logging.info(
+                    f"Evidence file not found: {folder}/evidences/{filename} in any run type directory")
+                self.send_error(404, f"Evidence file not found: {filename}")
+                return
+
+            # Determine content type
+            content_type, _ = mimetypes.guess_type(str(file_path))
+            if content_type is None:
+                content_type = 'application/octet-stream'
+
+            # Serve the file
+            self.send_response(200)
+            self.send_header('Content-Type', content_type)
+            self.send_header('Content-Length', str(file_path.stat().st_size))
+            self.send_cors_headers()
+            self.end_headers()
+
+            with open(file_path, 'rb') as f:
+                self.wfile.write(f.read())
+
+            logging.info(f"Served evidence file: {file_path}")
+
+        except Exception as e:
+            logging.error(f"Error serving evidence file {path}: {e}")
+            self.send_error(500, f"Error serving evidence file: {e}")
 
     def handle_get_simulation_files(self, path):
         """Handle simulation files list requests like /api/simulation-files/dry-run/alloys_0003"""
@@ -522,11 +545,12 @@ def main():
     print(f"Server: http://localhost:{PORT}")
     print(f"Data directory: {DATA_BASE_PATH}")
     print(f"Static files: {STATIC_BASE_PATH}")
-    print("\nEndpoints:")
+    print("Endpoints:")
     print(f"  GET  /                     - Main interface")
     print(f"  GET  /api/health           - Health check")
     print(f"  GET  /api/folders          - Available folders")
     print(f"  GET  /api/data/{{folder}}/{{file}} - Data files")
+    print(f"  GET  /api/data/{{folder}}/evidences/{{file}} - Evidence files")
     print("="*60)
 
     # Validate configuration

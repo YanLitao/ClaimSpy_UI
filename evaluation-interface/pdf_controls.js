@@ -133,14 +133,24 @@ async function applyAllHighlights(evidenceId, highlightInfo) {
             let attempts = 0;
 
             const checkReady = () => {
-                const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
-                if (pdfViewer && pdfViewer.pdfDocument) {
-                    resolve(pdfViewer);
-                } else if (attempts < maxAttempts) {
-                    attempts++;
-                    setTimeout(checkReady, 200);
-                } else {
-                    reject(new Error('PDF.js not ready after maximum attempts'));
+                try {
+                    const pdfViewer = pdfFrame.contentWindow.PDFViewerApplication;
+                    if (pdfViewer && pdfViewer.pdfDocument) {
+                        resolve(pdfViewer);
+                    } else if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(checkReady, 200);
+                    } else {
+                        reject(new Error('PDF.js not ready after maximum attempts - possible server error'));
+                    }
+                } catch (error) {
+                    // Handle iframe access errors (cross-origin, etc.)
+                    if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(checkReady, 200);
+                    } else {
+                        reject(new Error(`PDF.js access error: ${error.message}`));
+                    }
                 }
             };
 
@@ -501,7 +511,12 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
         const problemFolder = getProblemFolderFromCurrentFolder();
 
         // The file should be accessible via the API server
-        const filePath = `/api/data/${runType}/${problemFolder}/evidences/${evidenceMapping.filename}`;
+        // Server expects format: /api/data/{folder}/evidences/{filename}
+        const filePath = `/api/data/${problemFolder}/evidences/${evidenceMapping.filename}`;
+        console.log(`Loading evidence file: ${filePath}`);
+
+        // Log the file path for debugging - PDF.js will handle the actual loading
+        console.log(`📄 Preparing to load PDF: ${filePath}`);
 
         // Determine if it's a PDF file for enhanced features
         const isPDF = evidenceMapping.filename.toLowerCase().endsWith('.pdf');
@@ -590,7 +605,8 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
 
     } catch (error) {
         console.error('Error displaying file:', error);
-        showErrorInReadingMode('Failed to load evidence file');
+        console.error('File path attempted:', filePath);
+        showErrorInReadingMode(`Failed to load evidence file: ${error.message || error}`);
     } finally {
         loadingOverlay.style.display = 'none';
     }
@@ -635,6 +651,25 @@ function handlePDFFrameLoad(evidenceId) {
                     e.message.includes('annotation') ||
                     e.message.includes('render') && e.message.includes('method must be called'))) {
                     console.warn('Suppressed PDF.js iframe annotation error:', e.message);
+                    e.preventDefault();
+                    return false;
+                } else if (e.message && (e.message.includes('Unexpected server response') ||
+                    e.message.includes('400') || e.message.includes('404') ||
+                    e.message.includes('Invalid data path format') || e.message.includes('not allowed'))) {
+                    console.error('PDF server error:', e.message);
+                    const pdfContent = document.getElementById(`pdfContent_${evidenceId}`);
+                    if (pdfContent) {
+                        pdfContent.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #d32f2f;">
+                                <p>⚠️ Failed to load PDF file</p>
+                                <p>Server error: ${e.message.includes('400') ? 'File not found or not allowed' : 'Server error'}</p>
+                                <p>Please check if the file exists on the server.</p>
+                                <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Retry
+                                </button>
+                            </div>
+                        `;
+                    }
                     e.preventDefault();
                     return false;
                 }
@@ -851,6 +886,13 @@ console.error = function (...args) {
         console.warn('Suppressed PDF.js error:', message);
         return;
     }
+    // Don't suppress server response errors - let them show for debugging
+    if (message.includes('Unexpected server response') ||
+        message.includes('Invalid data path format') ||
+        message.includes('ResponseException')) {
+        console.error('PDF Server Error:', message);
+        return;
+    }
     originalConsoleError.apply(console, args);
 };
 
@@ -862,5 +904,13 @@ window.addEventListener('unhandledrejection', function (e) {
         console.warn('Suppressed PDF.js promise rejection:', e.reason.message);
         e.preventDefault();
         return false;
+    }
+    // Handle server response errors
+    if (e.reason && e.reason.message &&
+        (e.reason.message.includes('Unexpected server response') ||
+            e.reason.message.includes('ResponseException'))) {
+        console.error('PDF server error (unhandled promise):', e.reason.message);
+        // Don't suppress these - they are important for debugging
+        return;
     }
 });
