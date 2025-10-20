@@ -344,6 +344,72 @@ body {
     color: #1565c0;
 }
 
+/* Claim Card Section */
+.claim-card-section {
+    background: white;
+    border-left: 4px solid #4caf50;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.claim-card-section h3 {
+    margin: 0 0 1rem 0;
+    color: #2e7d32;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.claim-card-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+.claim-card-table th {
+    background: #f8f9fa;
+    color: #2e7d32;
+    font-weight: 600;
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 2px solid #e0e0e0;
+    font-size: 0.9rem;
+}
+
+.claim-card-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.claim-card-table tr:hover td {
+    background: #f8f9fa;
+}
+
+.claim-card-table tr:last-child td {
+    border-bottom: none;
+}
+
+.claim-card-field {
+    font-weight: 500;
+    color: #555;
+    min-width: 140px;
+}
+
+.claim-card-value {
+    color: #333;
+    word-break: break-word;
+}
+
 /* System Scores */
 .system-scores {
     background: #f5f5f5;

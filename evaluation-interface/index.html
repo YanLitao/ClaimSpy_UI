@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scientific Claim Assessment Interface</title>
+    <title>ClaimSpy Assessment Interface</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -13,8 +13,9 @@
         <div
             style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1100;">
             <div>
-                <h1>Scientific Claim Analysis Interface</h1>
-                <p>Interactive visualization tool for trajectory flow and evidence exploration</p>
+                <h1>ClaimSpy Assessment Interface</h1>
+                <p>Interactive visualization tool for ClaimSpy assessment results, trajectory flow, and evidence
+                    exploration</p>
             </div>
         </div>
     </div>
@@ -60,6 +61,14 @@
                     <div class="claim-section">
                         <div class="claim-text" id="claimText">
                             Loading claim...
+                        </div>
+                    </div>
+
+                    <!-- Claim Card Interpretation (shown only when available) -->
+                    <div class="claim-card-section" id="claimCardSection" style="display: none;">
+                        <h3>System Interpretation of Claim</h3>
+                        <div class="claim-card-content" id="claimCardContent">
+                            <!-- Claim card details will be populated here -->
                         </div>
                     </div>
 

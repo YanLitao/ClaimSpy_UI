@@ -297,6 +297,9 @@ async function loadAssessmentData(data) {
     // Display claim
     displayClaim(problem.claim);
 
+    // Display claim card interpretation (if available)
+    displayClaimCard(assessment);
+
     // Display system scores
     displaySystemScores(assessment);
 
@@ -689,6 +692,114 @@ function displayClaim(claim) {
     claimElement.textContent = claim;
     claimElement.classList.add('clickable-element');
     claimElement.onclick = () => showInJsonPanel(['problem'], 'claim');
+}
+
+// Display claim card interpretation
+function displayClaimCard(assessment) {
+    const claimCardSection = document.getElementById('claimCardSection');
+    const claimCardContent = document.getElementById('claimCardContent');
+
+    // Look for claim card evidence
+    let claimCardEvidence = null;
+    let claimCardId = null;
+
+    if (assessment.evidence) {
+        for (const [evidenceId, evidence] of Object.entries(assessment.evidence)) {
+            if (evidence.source === 'claim_card') {
+                claimCardEvidence = evidence;
+                claimCardId = evidenceId;
+                console.log(`Found claim card: ${claimCardId}`, claimCardEvidence);
+                break;
+            }
+        }
+    }
+
+    // If no claim card found, hide the section
+    if (!claimCardEvidence) {
+        console.log('No claim card found in assessment evidence');
+        claimCardSection.style.display = 'none';
+        return;
+    }
+
+    // Show the section
+    claimCardSection.style.display = 'block';
+
+    // Parse the claim card JSON from citation
+    let parsedClaimCard = null;
+    try {
+        parsedClaimCard = JSON.parse(claimCardEvidence.citation);
+    } catch (error) {
+        console.warn('Failed to parse claim card JSON:', error);
+        // Show raw citation if JSON parsing fails
+        claimCardContent.innerHTML = `
+            <div class="claim-card-raw">
+                <div class="claim-card-raw-label">Raw Claim Card Data:</div>
+                <div class="claim-card-raw-content">${claimCardEvidence.citation}</div>
+            </div>
+        `;
+        return;
+    }
+
+    // Create structured display of claim card fields
+    const assessmentPath = getAssessmentPath();
+    const evidencePath = assessmentPath.length > 0 ? [...assessmentPath, 'evidence', claimCardId] : ['evidence', claimCardId];
+    const pathStr = evidencePath.length > 0 ? `'${evidencePath.join("', '")}'` : '';
+
+    // Define the order and labels for claim card fields
+    const fieldLabels = {
+        'SystemEntity': 'System Entity',
+        'StatePhase': 'State/Phase',
+        'Conditions': 'Conditions',
+        'Manipulation': 'Manipulation',
+        'ObservableFoM': 'Observable/FoM',
+        'Units': 'Units',
+        'Quantifier': 'Quantifier',
+        'Threshold': 'Threshold'
+    };
+
+    // Build table rows
+    let tableRows = [];
+
+    // Display structured fields
+    for (const [field, label] of Object.entries(fieldLabels)) {
+        if (parsedClaimCard[field] !== undefined) {
+            tableRows.push(`
+                <tr class="clickable-element" onclick="showInJsonPanel([${pathStr}], 'citation')">
+                    <td class="claim-card-field">${label}</td>
+                    <td class="claim-card-value">${parsedClaimCard[field]}</td>
+                </tr>
+            `);
+        }
+    }
+
+    // Add any additional fields not in the predefined list
+    for (const [field, value] of Object.entries(parsedClaimCard)) {
+        if (!fieldLabels[field]) {
+            tableRows.push(`
+                <tr class="clickable-element" onclick="showInJsonPanel([${pathStr}], 'citation')">
+                    <td class="claim-card-field">${field}</td>
+                    <td class="claim-card-value">${value}</td>
+                </tr>
+            `);
+        }
+    }
+
+    // Create the table
+    const tableHtml = `
+        <table class="claim-card-table">
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows.join('')}
+            </tbody>
+        </table>
+    `;
+
+    claimCardContent.innerHTML = tableHtml;
 }
 
 // Display system scores
