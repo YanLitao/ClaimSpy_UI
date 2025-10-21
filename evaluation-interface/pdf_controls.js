@@ -329,7 +329,7 @@ async function createHighlightOverlay(pdfViewer, pageNumber, textItems, evidence
             highlightDiv.style.cssText = `
                 position: absolute;
                 left: ${screenX}px;
-                top: ${screenY}px;
+                top: ${screenY - 10}px;
                 width: ${width * viewport.scale}px;
                 height: ${height * viewport.scale}px;
                 background-color: rgba(255, 255, 0, 0.3);
@@ -539,10 +539,6 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
         const fileViewerHtml = `
             <div class="pdf-viewer-container" id="pdfContainer_${evidenceId}">
                 <div class="pdf-header">
-                    <h4>${evidenceMapping.filename}</h4>
-                    <div class="pdf-info">
-                        ${evidenceMapping.original_url ? `<br><small>Original: <a href="${evidenceMapping.original_url}" target="_blank">${evidenceMapping.original_url}</a></small>` : ''}
-                    </div>
                     <div class="pdf-actions">
                         <button onclick="openPDFInNewTab('${filePath}')" class="btn btn-small">
                             Open in New Tab
@@ -564,10 +560,6 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                         `<img src="${filePath}" style="max-width: 100%; height: auto;" alt="${evidenceMapping.filename}" />` :
                         `<embed src="${filePath}" type="application/pdf" width="100%" height="600px" />`
             }
-                </div>
-                <div class="citation-info">
-                    <h5>Citation Information:</h5>
-                    <p>${evidenceMapping.citation || 'No citation available'}</p>
                 </div>
             </div>
         `;

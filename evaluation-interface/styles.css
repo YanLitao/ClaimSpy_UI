@@ -125,6 +125,9 @@ body {
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 /* Right Panel - Evidence */
@@ -311,37 +314,16 @@ body {
 }
 
 .folder-selection.collapsed {
-    padding: 0.5rem 1rem;
-    border: 1px solid #27ae60;
-    background: #d5f4e6;
-}
-
-.folder-selection.collapsed h3 {
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-.folder-selection.collapsed p {
-    display: none;
-}
-
-.folder-selection.collapsed select {
     display: none;
 }
 
 /* Claim Section */
 .claim-section {
-    background: #e3f2fd;
-    border-left: 4px solid #2196f3;
-    padding: 1rem;
     margin-bottom: 1rem;
-    border-radius: 4px;
 }
 
 .claim-text {
     font-size: 1.1rem;
-    font-weight: 600;
-    color: #1565c0;
 }
 
 /* Claim Card Section */
@@ -410,14 +392,6 @@ body {
     word-break: break-word;
 }
 
-/* System Scores */
-.system-scores {
-    background: #f5f5f5;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-}
-
 .score-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -428,8 +402,6 @@ body {
     text-align: center;
     padding: 1rem;
     background: white;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .score-value {
@@ -451,17 +423,11 @@ body {
 
 .explanation-item {
     background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    margin-bottom: 1rem;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .explanation-header {
-    padding: 1rem;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
+    padding: 0.1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -470,6 +436,18 @@ body {
 .explanation-text {
     flex: 1;
     margin-right: 1rem;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.explanation-text::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #3498db;
+    font-weight: bold;
+    font-size: 1.2rem;
 }
 
 .explanation-actions {
@@ -1294,7 +1272,6 @@ body {
 /* Enhanced content display for code with explanations */
 .content-display {
     position: relative;
-    overflow: visible;
 }
 
 .content-display pre {
@@ -1400,6 +1377,34 @@ body {
     background: #f8f9fa;
 }
 
+/* Collapsible thoughts styles */
+.thought-container {
+    flex: 1;
+}
+
+.thought-summary,
+.thought-full {
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+}
+
+.thought-toggle-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.thought-toggle-btn:hover {
+    background: #0056b3;
+}
+
 .trajectory-flow-header {
     display: flex;
     justify-content: space-between;
@@ -1461,9 +1466,7 @@ body {
     z-index: 2;
     padding: 0 50px;
     min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    width: 100%;
 }
 
 .step-node,
@@ -1487,10 +1490,6 @@ body {
 .answer-node:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transform: translateX(-50%) translateY(-2px);
-}
-
-.step-node {
-    border-left: 4px solid #007bff;
 }
 
 .reasoning-node {
@@ -1561,7 +1560,7 @@ body {
 .observation-items {
     margin-top: 0.5rem;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 0.25rem;
 }
 
@@ -1576,7 +1575,7 @@ body {
     font-size: 0.7rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    max-width: 120px;
+    width: 100%;
 }
 
 .obs-item-box:hover {
@@ -1620,25 +1619,42 @@ body {
 
 /* Evidence connection lines */
 .evidence-connection-line {
-    z-index: 1000 !important;
+    z-index: 800 !important;
     position: fixed !important;
     overflow: visible !important;
-    z-index: 6;
 }
 
 .evidence-connection-line line {
-    stroke: #ff6b6b !important;
-    stroke-width: 3 !important;
-    stroke-dasharray: 8, 4 !important;
-    opacity: 0.9 !important;
-    animation: dash 2s linear infinite !important;
+    stroke: #007bff !important;
+    stroke-width: 2 !important;
+    fill: none !important;
+    opacity: 1 !important;
     z-index: 6;
 }
 
-@keyframes dash {
-    to {
-        stroke-dashoffset: -12;
-    }
+.evidence-connection-line path {
+    stroke: #007bff !important;
+    stroke-width: 2 !important;
+    fill: none !important;
+    opacity: 1 !important;
+    z-index: 6;
+}
+
+/* Arrow marker styles */
+.arrow-marker {
+    fill: #007bff !important;
+}
+
+/* Highlighted observation items */
+.obs-item-box.highlighted-observation {
+    background: #e3f2fd !important;
+    border: 2px solid #2196f3 !important;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
+}
+
+.obs-item-box.highlighted-observation .obs-item-text {
+    color: #1565c0 !important;
+    font-weight: 600 !important;
 }
 
 /* Responsive design for trajectory flow */

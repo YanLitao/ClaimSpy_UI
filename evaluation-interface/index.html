@@ -59,6 +59,7 @@
                 <div id="contentArea" class="hidden">
                     <!-- Claim Display -->
                     <div class="claim-section">
+                        <h2>Claim:</h2>
                         <div class="claim-text" id="claimText">
                             Loading claim...
                         </div>
@@ -66,7 +67,7 @@
 
                     <!-- Claim Card Interpretation (shown only when available) -->
                     <div class="claim-card-section" id="claimCardSection" style="display: none;">
-                        <h3>System Interpretation of Claim</h3>
+                        <h2>System Interpretation of Claim</h2>
                         <div class="claim-card-content" id="claimCardContent">
                             <!-- Claim card details will be populated here -->
                         </div>
@@ -74,7 +75,7 @@
 
                     <!-- System Scores -->
                     <div class="system-scores">
-                        <h3>System Assessment Scores</h3>
+                        <h2>System Assessment Scores</h2>
                         <div class="score-grid" id="systemScores">
                             <!-- Scores will be populated here -->
                         </div>
@@ -82,7 +83,7 @@
 
                     <!-- Explanations -->
                     <div class="explanations-section">
-                        <h2>Detailed Explanations</h2>
+                        <h2>Explanations</h2>
                         <div id="explanationsList">
                             <!-- Explanations will be populated here -->
                         </div>
@@ -116,6 +117,9 @@
 
     <!-- Load configuration and main script -->
     <script src="trajectory_flow.js"></script>
+    <script src="simulation_manager.js"></script>
+    <script src="evidence_manager.js"></script>
+    <script src="explanation_display.js"></script>
     <script src="script.js"></script>
     <script src="code_explanation.js"></script>
     <script src="pdf_controls.js"></script>

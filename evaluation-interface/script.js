@@ -2,12 +2,10 @@
 
 // Global variables
 let currentData = null;
-let evidenceData = null;
 let trajectoryData = null;
 let mappingData = null;
 let userApiKey = null;
 let apiKeyRemembered = false;
-let evidenceCache = new Map(); // Cache for scraped content and AI analysis
 let folderMetadata = new Map(); // Store folder metadata including run_type
 
 // Data directory configuration
@@ -241,17 +239,23 @@ async function loadAssessmentData(data) {
         // Format 1: Direct assessment object (assessment.json)
         if (data.type === 'assessment' && data.explanation && data.evidence) {
             assessment = data;
-            evidenceData = assessment.evidence || {};
+            if (window.evidenceManager) {
+                window.evidenceManager.setEvidenceData(assessment.evidence || {});
+            }
         }
         // Format 2: Nested solution.assessment format (alloys_0006.json, assessment_1.0_*.json)
         else if (data.solution && data.solution.assessment) {
             assessment = data.solution.assessment;
-            evidenceData = assessment.evidence || {};
+            if (window.evidenceManager) {
+                window.evidenceManager.setEvidenceData(assessment.evidence || {});
+            }
         }
         // Format 3: Old solution.json_output format (legacy PoVE-multiagent.json)
         else if (data.solution && data.solution.json_output) {
             assessment = JSON.parse(data.solution.json_output);
-            evidenceData = assessment.evidence || {};
+            if (window.evidenceManager) {
+                window.evidenceManager.setEvidenceData(assessment.evidence || {});
+            }
         }
         else {
             console.log('Data structure:', Object.keys(data));
@@ -262,7 +266,7 @@ async function loadAssessmentData(data) {
         }
     } catch (error) {
         showError('Error parsing assessment data: ' + error.message);
-        return;
+        throw error; // Re-throw the error so it can be caught by the caller
     }
 
     // Parse problem data - handle multiple formats
@@ -304,7 +308,9 @@ async function loadAssessmentData(data) {
     displaySystemScores(assessment);
 
     // Display explanations - now with full file loading
-    await displayExplanations(assessment.explanation || []);
+    if (window.explanationDisplay) {
+        await window.explanationDisplay.displayExplanations(assessment.explanation || []);
+    }
 
     // Update JSON context panel
     updateJSONContext(data);
@@ -333,38 +339,6 @@ function getAssessmentPath() {
     return []; // default fallback for direct format
 }
 
-// Helper function to validate if a string is a valid URL
-function isValidUrl(string) {
-    if (!string || typeof string !== 'string') return false;
-    try {
-        const url = new URL(string);
-        return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch (_) {
-        return false;
-    }
-}
-
-// Helper function to get appropriate CSS class for evidence type
-function getEvidenceTypeClass(type) {
-    if (!type) return 'unknown';
-
-    const typeMap = {
-        'web search': 'web-search',
-        'simulation': 'simulation',
-        'simulation result': 'simulation',
-        'reasoning': 'reasoning',
-        'experiment': 'experiment',
-        'experimental': 'experiment',
-        'literature': 'literature',
-        'literature review': 'literature',
-        'database': 'database',
-        'data': 'database'
-    };
-
-    const lowerType = type.toLowerCase();
-    return typeMap[lowerType] || 'web-search'; // default to web-search style
-}
-
 // Get run type from current folder selection
 function getRunTypeFromCurrentFolder() {
     const dropdown = document.getElementById('folderDropdown');
@@ -383,313 +357,19 @@ function getProblemFolderFromCurrentFolder() {
     return selectedFolder; // The dropdown value is already the problem folder name
 }
 
-// Load simulation files from sandbox folder for a given evidence item
-async function loadSandboxFiles(evidenceId) {
-    // The API server automatically handles sandbox folder mapping
-    // So we can use the regular loadSimulationFiles function
-    return loadSimulationFiles(evidenceId);
-}
-
-// Load simulation files for a given evidence item
-async function loadSimulationFiles(evidenceId) {
-    const runType = getRunTypeFromCurrentFolder();
-    const problemFolder = getProblemFolderFromCurrentFolder();
-
-    if (!runType || !problemFolder) {
-        console.error('Cannot determine run type or problem folder');
-        return [];
+// Wrapper function for showSimulationFile - delegates to simulation manager
+function showSimulationFile(filename) {
+    if (window.simulationManager && window.simulationManager.showSimulationFile) {
+        return window.simulationManager.showSimulationFile(filename);
+    } else {
+        console.error('Simulation manager not loaded');
     }
-
-    try {
-        const response = await fetch(`/api/simulation-files/${runType}/${problemFolder}`);
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                console.log(`🚫 No simulation files found for ${runType}/${problemFolder}`);
-                return [];
-            }
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const allFiles = data.files || [];
-
-        // Only return data files (CSV, JSON, PY), PNG files are handled as visualizations
-        // Also filter out explanation files from display
-        const dataFiles = allFiles.filter(file => {
-            const isDataFile = ['.csv', '.json', '.py'].includes(file.extension);
-            const isExplanation = typeof isExplanationFile === 'function' ?
-                isExplanationFile(file.name) : file.name.endsWith('_explanation.json');
-
-
-
-            return isDataFile && !isExplanation;
-        });
-
-        const pngFiles = allFiles.filter(file => file.extension === '.png');
-
-        // Associate PNG files with their corresponding data files
-        const filesWithVisualizations = dataFiles.map(file => {
-            const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-            const correspondingPng = pngFiles.find(png => {
-                const pngBaseName = png.name.replace(/\.[^/.]+$/, '');
-                return pngBaseName === baseName;
-            });
-
-            return {
-                ...file,
-                hasVisualization: !!correspondingPng,
-                visualizationFile: correspondingPng?.name
-            };
-        });
-
-        return filesWithVisualizations;
-    } catch (error) {
-        console.error('Error loading simulation files:', error);
-        return [];
-    }
-}// Display simulation file content in right panel
-async function showSimulationFile(filename) {
-    // Use the new enhanced function with explanation support
-    if (typeof showSimulationFileWithExplanation === 'function') {
-        return showSimulationFileWithExplanation(filename);
-    }
-
-    // Fallback to original implementation
-    const runType = getRunTypeFromCurrentFolder();
-    const problemFolder = getProblemFolderFromCurrentFolder();
-
-    if (!runType || !problemFolder) {
-        console.error('Cannot determine run type or problem folder');
-        return;
-    }
-
-    // Show right panel
-    const rightPanel = document.getElementById('rightPanel');
-    if (!rightPanel.classList.contains('expanded')) {
-        rightPanel.classList.add('expanded');
-    }
-
-    // Show loading state
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const readingModeViewer = document.getElementById('readingModeViewer');
-    const webpageViewer = document.getElementById('webpageViewer');
-    const welcomeMessage = document.getElementById('welcomeMessage');
-
-    loadingOverlay.style.display = 'flex';
-    readingModeViewer.style.display = 'none';
-    webpageViewer.style.display = 'none';
-    welcomeMessage.style.display = 'none';
-
-    try {
-        // API server will automatically check sandbox folders
-        const response = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${filename}`);
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const content = await response.text();
-
-        // Check if there's a corresponding visualization (PNG file)
-        const baseName = filename.replace(/\.[^/.]+$/, ''); // Remove extension
-        const visualizationFilename = `${baseName}.png`;
-
-        console.log(`Looking for visualization: ${visualizationFilename} for file: ${filename}`);
-
-        let visualizationHtml = '';
-        try {
-            const vizResponse = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${visualizationFilename}`);
-            console.log(`Visualization response status: ${vizResponse.status} for ${visualizationFilename}`);
-
-            if (vizResponse.ok) {
-                console.log(`✅ Found visualization: ${visualizationFilename}`);
-                // PNG file exists, create image element
-                visualizationHtml = `
-                    <div class="visualization-section" style="margin-bottom: 2rem;">
-                        <h4 style="color: #2c3e50; margin-bottom: 1rem;">📊 Visualization</h4>
-                        <div style="text-align: center; background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
-                            <img src="/api/simulation-file/${runType}/${problemFolder}/${visualizationFilename}" 
-                                 alt="Visualization for ${filename}" 
-                                 style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
-                        </div>
-                    </div>
-                `;
-            } else {
-                console.log(`❌ No visualization found: ${vizResponse.status} for ${visualizationFilename}`);
-            }
-        } catch (vizError) {
-            // No visualization available, continue without it
-            console.log(`❌ Error fetching visualization for ${filename}:`, vizError);
-        }
-
-        let contentHtml = '';
-
-        if (filename.endsWith('.csv')) {
-            // Parse and display CSV as a table
-            contentHtml = formatCsvAsTable(content, filename);
-        } else {
-            // Handle other file types
-            let displayContent = content;
-            let language = 'text';
-
-            if (filename.endsWith('.json')) {
-                try {
-                    const jsonData = JSON.parse(content);
-                    displayContent = JSON.stringify(jsonData, null, 2);
-                    language = 'json';
-                } catch (e) {
-                    language = 'text';
-                }
-            } else if (filename.endsWith('.py')) {
-                language = 'python';
-            }
-
-            contentHtml = `
-                <div class="content-display">
-                    <pre><code class="language-${language}">${displayContent}</code></pre>
-                </div>
-            `;
-        }
-
-        // Display in reading mode viewer
-        readingModeViewer.innerHTML = `
-            <div class="source-info">
-                <div class="source-title">Simulation File: ${filename}</div>
-                <div style="margin-top: 0.5rem; font-style: italic; color: #666;">
-                    Location: ${runType}/${problemFolder}/${filename}
-                </div>
-            </div>
-            <div style="margin-top: 1rem;">
-                ${visualizationHtml}
-                ${contentHtml}
-            </div>
-        `;
-
-        readingModeViewer.style.display = 'block';
-
-    } catch (error) {
-        console.error('Error loading simulation file:', error);
-        readingModeViewer.innerHTML = `
-            <div class="source-info">
-                <div class="source-title">Error Loading File</div>
-            </div>
-            <div class="error-content" style="margin-top: 1rem; padding: 1rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c33;">
-                Failed to load ${filename}: ${error.message}
-            </div>
-        `;
-        readingModeViewer.style.display = 'block';
-    } finally {
-        loadingOverlay.style.display = 'none';
-    }
-}
-
-// Format CSV content as an HTML table
-function formatCsvAsTable(csvContent, filename) {
-    try {
-        const lines = csvContent.trim().split('\n');
-        if (lines.length === 0) {
-            return '<p>Empty CSV file</p>';
-        }
-
-        // Parse CSV headers
-        const headers = parseCsvLine(lines[0]);
-
-        let tableHtml = `
-            <div class="csv-table-container">
-                <h4 style="color: #2c3e50; margin-bottom: 1rem;">📋 Data Table</h4>
-                <div style="overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-                        <thead>
-                            <tr style="background: #f8f9fa;">
-        `;
-
-        // Add headers
-        headers.forEach(header => {
-            tableHtml += `<th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">${header}</th>`;
-        });
-
-        tableHtml += '</tr></thead><tbody>';
-
-        // Add data rows
-        for (let i = 1; i < lines.length; i++) {
-            if (lines[i].trim()) {
-                const cells = parseCsvLine(lines[i]);
-                const rowStyle = i % 2 === 0 ? 'background: #f8f9fa;' : 'background: white;';
-                tableHtml += `<tr style="${rowStyle}">`;
-
-                cells.forEach((cell, index) => {
-                    const cellContent = cell || '-';
-                    const isNumeric = !isNaN(cell) && cell !== '';
-                    const textAlign = isNumeric ? 'text-align: right;' : 'text-align: left;';
-                    tableHtml += `<td style="padding: 0.75rem; border-bottom: 1px solid #dee2e6; ${textAlign}">${cellContent}</td>`;
-                });
-
-                tableHtml += '</tr>';
-            }
-        }
-
-        tableHtml += `
-                    </tbody>
-                </table>
-            </div>
-            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
-                Rows: ${lines.length - 1} | Columns: ${headers.length}
-            </div>
-        </div>
-        `;
-
-        return tableHtml;
-
-    } catch (error) {
-        console.error('Error parsing CSV:', error);
-        return `
-            <div class="content-display">
-                <h4 style="color: #2c3e50; margin-bottom: 1rem;">📋 Raw CSV Content</h4>
-                <pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1rem; overflow-x: auto; white-space: pre-wrap;">${csvContent}</pre>
-            </div>
-        `;
-    }
-}
-
-// Simple CSV line parser (handles basic cases)
-function parseCsvLine(line) {
-    const result = [];
-    let current = '';
-    let isInQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
-        if (char === '"') {
-            isInQuotes = !isInQuotes;
-        } else if (char === ',' && !isInQuotes) {
-            result.push(current.trim());
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-
-    result.push(current.trim());
-    return result;
-}
-
-
-
-// Format file size for display
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 // Display claim
 function displayClaim(claim) {
     const claimElement = document.getElementById('claimText');
-    claimElement.textContent = claim;
+    claimElement.innerHTML = `${claim}`;
     claimElement.classList.add('clickable-element');
     claimElement.onclick = () => showInJsonPanel(['problem'], 'claim');
 }
@@ -708,7 +388,6 @@ function displayClaimCard(assessment) {
             if (evidence.source === 'claim_card') {
                 claimCardEvidence = evidence;
                 claimCardId = evidenceId;
-                console.log(`Found claim card: ${claimCardId}`, claimCardEvidence);
                 break;
             }
         }
@@ -813,7 +492,7 @@ function displaySystemScores(assessment) {
             <div class="score-value">
                 ${assessment.likert_score !== undefined ? assessment.likert_score : 'N/A'}
             </div>
-            <div class="score-label">Likert Score</div>
+            <div class="score-label">Feasibility Score</div>
         </div>
         <div class="score-item clickable-element" onclick="showInJsonPanel([${pathStr}], 'continuous_score')">
             <div class="score-value">
@@ -830,191 +509,69 @@ function displaySystemScores(assessment) {
     `;
 }
 
-// Display explanations
-async function displayExplanations(explanations) {
-    const container = document.getElementById('explanationsList');
-    container.innerHTML = '';
-    const assessmentPath = getAssessmentPath();
+// Wrapper functions for evidence and explanation functionality
 
-    // Handle case where explanations might be undefined or empty
-    if (!explanations || !Array.isArray(explanations)) {
-        container.innerHTML = '<p style="color: #666; padding: 1rem;">No explanations available.</p>';
-        return;
+// Toggle explanation content - delegates to explanation display module
+function toggleExplanationContent(index) {
+    if (window.explanationDisplay && window.explanationDisplay.toggleExplanationContent) {
+        window.explanationDisplay.toggleExplanationContent(index);
+    } else {
+        // Fallback implementation
+        const content = document.getElementById(`explanationContent${index}`);
+        content.classList.toggle('expanded');
     }
+}
 
-    // Pre-load all simulation files for all simulation evidence
-    const simulationFilesCache = {};
-    if (evidenceData) {
-        const simulationEvidence = Object.keys(evidenceData).filter(evidenceId => {
-            const evidence = evidenceData[evidenceId];
-            return evidence && evidence.type && evidence.type.toLowerCase().includes('simulation');
+// Mark explanation - delegates to explanation display module
+function markExplanation(index, status) {
+    if (window.explanationDisplay && window.explanationDisplay.markExplanation) {
+        window.explanationDisplay.markExplanation(index, status);
+    } else {
+        // Fallback implementation
+        const item = document.querySelectorAll('.explanation-item')[index];
+        const buttons = item.querySelectorAll('.btn');
+
+        // Reset all buttons
+        buttons.forEach(btn => {
+            btn.classList.remove('checked', 'issue');
         });
 
-        // Load all simulation files at once
-        for (const evidenceId of simulationEvidence) {
-            try {
-                // Use loadSandboxFiles which will try sandbox first, then fallback to regular simulation files
-                const files = await loadSandboxFiles(evidenceId);
-                simulationFilesCache[evidenceId] = files;
-            } catch (error) {
-                console.error(`Error loading simulation files for ${evidenceId}:`, error);
-                simulationFilesCache[evidenceId] = [];
+        // Mark the clicked button
+        event.target.classList.add(status);
+    }
+}
+
+// Toggle evidence section - delegates to evidence manager
+function toggleEvidenceSection(index) {
+    if (window.evidenceManager && window.evidenceManager.toggleEvidenceSection) {
+        window.evidenceManager.toggleEvidenceSection(index);
+    } else {
+        // Fallback implementation
+        const evidenceSection = document.getElementById(`evidenceSection${index}`);
+        const isExpanding = !evidenceSection.classList.contains('expanded');
+        evidenceSection.classList.toggle('expanded');
+
+        // If trajectory flow is visible, handle evidence connections
+        if (window.trajectoryFlow && window.trajectoryFlow.isVisible()) {
+            if (isExpanding) {
+                // Evidence section is being expanded - draw connections
+                setTimeout(() => {
+                    window.trajectoryFlow.drawEvidenceConnections(index);
+                }, 100); // Wait for expansion animation
+            } else {
+                // Evidence section is being collapsed - clear connections
+                window.trajectoryFlow.clearEvidenceConnections();
             }
         }
     }
-
-    explanations.forEach((explanation, index) => {
-        const explanationEl = document.createElement('div');
-        explanationEl.className = 'explanation-item';
-        const pathStr = assessmentPath.length > 0 ? `'${assessmentPath.join("', '")}'` : '';
-
-        // Check if explanation has valid evidence
-        const validEvidence = (explanation.evidence || []).filter(id => evidenceData[id] && evidenceData[id].citation);
-        const hasEvidence = validEvidence.length > 0;
-
-        explanationEl.innerHTML = `
-            <div class="explanation-header">
-                <div class="explanation-text clickable-element" onclick="showInJsonPanel([${pathStr}], 'explanation', ${index})">${explanation.text}</div>
-                <div class="explanation-actions">
-                    ${hasEvidence ? `<button class="btn" onclick="toggleEvidenceSection(${index})">Evidence (${validEvidence.length})</button>` : ''}
-                    ${mappingData ? `<button class="btn" onclick="showTrajectoryFlow(${index})">Show Trajectory</button>` : ''}
-                </div>
-            </div>
-            <div class="explanation-content" id="explanationContent${index}">
-                <textarea class="comment-box" placeholder="Add your comments about this explanation..."></textarea>
-            </div>
-            ${hasEvidence ? `
-            <div class="evidence-section" id="evidenceSection${index}">
-                <div class="evidence-header-toggle" onclick="toggleEvidenceSection(${index})">
-                    <h4>Evidence (${validEvidence.length})</h4>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div id="evidenceContent${index}">
-                    ${(explanation.evidence || []).map(evidenceId => {
-            const evidence = evidenceData[evidenceId];
-            if (!evidence || !evidence.citation) return '';
-            const hasValidUrl = isValidUrl(evidence.source);
-
-            // Generate simulation files HTML if this is simulation evidence
-            let simulationFilesHtml = '';
-            if (evidence.type && evidence.type.toLowerCase().includes('simulation') && simulationFilesCache[evidenceId]) {
-                const files = simulationFilesCache[evidenceId];
-                if (files.length > 0) {
-                    const fileBoxesHtml = files.map(file => {
-                        const visualizationIndicator = file.hasVisualization ? ' 📊' : '';
-                        const tooltipText = file.hasVisualization ?
-                            `View ${file.name} with visualization (${formatFileSize(file.size)})` :
-                            `View ${file.name} (${formatFileSize(file.size)})`;
-
-                        return `
-                            <div class="simulation-file-box" onclick="event.stopPropagation(); showSimulationFile('${file.name}')" 
-                                 style="display: inline-block; margin: 2px; padding: 6px 10px; background: #f8f9fa; 
-                                        border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
-                                        transition: background-color 0.2s;"
-                                 onmouseover="this.style.backgroundColor='#e9ecef'" 
-                                 onmouseout="this.style.backgroundColor='#f8f9fa'"
-                                 title="${tooltipText}">
-                                ${file.name}${visualizationIndicator}
-                            </div>
-                        `;
-                    }).join('');
-
-                    simulationFilesHtml = `
-                        <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
-                            <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
-                            <div class="simulation-files-content" id="simFilesContent${evidenceId}">${fileBoxesHtml}</div>
-                        </div>
-                    `;
-                } else {
-                    simulationFilesHtml = `
-                        <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
-                            <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
-                            <div class="simulation-files-content" id="simFilesContent${evidenceId}" style="color: #999;">No simulation files found</div>
-                        </div>
-                    `;
-                }
-            }
-
-            return `
-                            <div class="evidence-item" id="evidence-${index}-${evidenceId}" data-evidence-id="${evidenceId}" data-explanation-index="${index}" onclick="showInJsonPanel([${pathStr}], 'evidence', '${evidenceId}')">
-                                <div class="evidence-header">
-                                    <span class="evidence-type ${getEvidenceTypeClass(evidence.type)}">${evidence.type || 'Unknown'}</span>
-                                </div>
-                                <div class="evidence-citation-row">
-                                    <div class="evidence-citation">${evidence.citation}</div>
-                                    ${evidence.type && evidence.type.toLowerCase() === 'web search' ? `
-                                    <button class="local-file-btn" onclick="event.stopPropagation(); viewLocalEvidence('${evidenceId}')" id="localBtn${evidenceId}" title="View local evidence file">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14,2 14,8 20,8"></polyline>
-                                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                                            <polyline points="10,9 9,9 8,9"></polyline>
-                                        </svg>
-                                        📄
-                                    </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            ${simulationFilesHtml}
-                        `;
-        }).join('')}
-                </div>
-            </div>
-            ` : ''}
-        `;
-        container.appendChild(explanationEl);
-    });
-
-    // Update local file button texts
-    updateLocalFileButtonTexts();
 }
 
-// Update local file button texts
-function updateLocalFileButtonTexts() {
-    // Update button titles for local file viewing
-    document.querySelectorAll('.local-file-btn').forEach(btn => {
-        btn.title = 'View local evidence file';
-    });
-}
-
-// Toggle explanation content
-function toggleExplanationContent(index) {
-    const content = document.getElementById(`explanationContent${index}`);
-    content.classList.toggle('expanded');
-}
-
-// Mark explanation
-function markExplanation(index, status) {
-    const item = document.querySelectorAll('.explanation-item')[index];
-    const buttons = item.querySelectorAll('.btn');
-
-    // Reset all buttons
-    buttons.forEach(btn => {
-        btn.classList.remove('checked', 'issue');
-    });
-
-    // Mark the clicked button
-    event.target.classList.add(status);
-}
-
-// Toggle evidence section
-function toggleEvidenceSection(index) {
-    const evidenceSection = document.getElementById(`evidenceSection${index}`);
-    const isExpanding = !evidenceSection.classList.contains('expanded');
-    evidenceSection.classList.toggle('expanded');
-
-    // If trajectory flow is visible, handle evidence connections
-    if (window.trajectoryFlow && window.trajectoryFlow.isVisible()) {
-        if (isExpanding) {
-            // Evidence section is being expanded - draw connections
-            setTimeout(() => {
-                window.trajectoryFlow.drawEvidenceConnections(index);
-            }, 100); // Wait for expansion animation
-        } else {
-            // Evidence section is being collapsed - clear connections
-            window.trajectoryFlow.clearEvidenceConnections();
-        }
+// View local evidence - delegates to evidence manager
+function viewLocalEvidence(evidenceId) {
+    if (window.evidenceManager && window.evidenceManager.viewLocalEvidence) {
+        window.evidenceManager.viewLocalEvidence(evidenceId);
+    } else {
+        console.error('Evidence manager not loaded');
     }
 }
 
@@ -1039,75 +596,21 @@ function showTrajectoryFlow(explanationIndex = null) {
     }
 }
 
-// Format trajectory text with markdown-like formatting and handle objects
+// Wrapper functions for formatting - delegates to explanation display module
 function formatTrajectoryText(text) {
-    if (!text) return '';
-
-    // Handle different data types
-    if (typeof text === 'object') {
-        if (Array.isArray(text)) {
-            // Handle arrays of objects (like search results)
-            return formatSearchResults(text);
-        } else {
-            // Handle single objects - show as formatted JSON
-            return `<pre>${JSON.stringify(text, null, 2)}</pre>`;
-        }
+    if (window.explanationDisplay && window.explanationDisplay.formatTrajectoryText) {
+        return window.explanationDisplay.formatTrajectoryText(text);
     }
-
-    // Convert to string if not already
-    let formattedText = String(text);
-
-    // Apply markdown-like formatting
-    formattedText = formattedText
-        // Bold text: **text** -> <strong>text</strong>
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        // Bullet points: - text -> • text
-        .replace(/^- (.+)$/gm, '• $1')
-        // Preserve line breaks
-        .replace(/\n/g, '<br>')
-        // Handle numbered lists better
-        .replace(/^(\d+\.\s)/gm, '<strong>$1</strong>');
-
-    return formattedText;
+    // Fallback - simple text conversion
+    return String(text || '');
 }
 
-// Format search results as structured cards
 function formatSearchResults(results) {
-    if (!Array.isArray(results)) return '';
-
-    return results.map((result, index) => {
-        if (typeof result === 'object' && result.source && result.citation) {
-            return `
-                <div class="search-result-card">
-                    <div class="search-result-header">
-                        <strong>Result ${index + 1}</strong>
-                        <a href="${result.source}" target="_blank" class="source-link">🔗 Source</a>
-                    </div>
-                    <div class="search-result-citation">${result.citation}</div>
-                    ${result.why ? `<div class="search-result-why"><strong>Why relevant:</strong> ${result.why}</div>` : ''}
-                </div>
-            `;
-        } else {
-            return `<div class="search-result-simple">${typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)}</div>`;
-        }
-    }).join('');
-}
-
-// Highlight active evidence item
-function highlightActiveEvidence(evidenceId) {
-    // Remove previous active states
-    document.querySelectorAll('.evidence-item.active').forEach(item => {
-        item.classList.remove('active');
-    });
-
-    // Find and highlight the current evidence item by looking for the jump button
-    const jumpButton = document.getElementById(`jumpBtn${evidenceId}`);
-    if (jumpButton) {
-        const evidenceElement = jumpButton.closest('.evidence-item');
-        if (evidenceElement) {
-            evidenceElement.classList.add('active');
-        }
+    if (window.explanationDisplay && window.explanationDisplay.formatSearchResults) {
+        return window.explanationDisplay.formatSearchResults(results);
     }
+    // Fallback - simple JSON representation
+    return Array.isArray(results) ? results.map(r => JSON.stringify(r)).join('<br>') : '';
 }
 
 
@@ -1181,53 +684,60 @@ function showTrajectoryInJsonPanel(trajectoryKey) {
 // Format JSON with hierarchical structure for highlighting
 function formatJsonForHighlight(obj, path = [], depth = 0) {
     const indent = '  '.repeat(depth);
+    const pathStr = path.join('.');
+
+    // Debug logging for key paths
+    if (depth < 3 && (pathStr.includes('explanation') || pathStr.includes('evidence'))) {
+        console.log(`Creating data-path: "${pathStr}" for:`, typeof obj === 'object' ? Object.keys(obj).slice(0, 3) : obj);
+    }
 
     if (typeof obj !== 'object' || obj === null) {
         if (typeof obj === 'string' && obj.length > 100) {
             // Truncate long strings but keep them searchable
             const truncated = obj.substring(0, 100) + '...';
-            return `<span class="json-value" data-path="${path.join('.')}" title="${obj.replace(/"/g, '&quot;')}">${JSON.stringify(truncated)}</span>`;
+            return `<span class="json-value" data-path="${pathStr}" title="${obj.replace(/"/g, '&quot;')}">${JSON.stringify(truncated)}</span>`;
         }
-        return `<span class="json-value" data-path="${path.join('.')}">${JSON.stringify(obj)}</span>`;
+        return `<span class="json-value" data-path="${pathStr}">${JSON.stringify(obj)}</span>`;
     }
 
     if (Array.isArray(obj)) {
-        if (obj.length === 0) return '[]';
-        let result = '[\n';
+        if (obj.length === 0) return `<span data-path="${pathStr}">[]</span>`;
+        let result = `<span data-path="${pathStr}">[\n`;
         obj.forEach((item, index) => {
             const itemPath = [...path, index];
             result += `${indent}  <span class="json-item" data-path="${itemPath.join('.')}">${formatJsonForHighlight(item, itemPath, depth + 1)}</span>`;
             if (index < obj.length - 1) result += ',';
             result += '\n';
         });
-        result += `${indent}]`;
+        result += `${indent}]</span>`;
         return result;
     }
 
     const keys = Object.keys(obj);
-    if (keys.length === 0) return '{}';
+    if (keys.length === 0) return `<span data-path="${pathStr}">{}</span>`;
 
-    let result = '{\n';
+    let result = `<span data-path="${pathStr}">{\n`;
     keys.forEach((key, index) => {
         const keyPath = [...path, key];
+        const keyPathStr = keyPath.join('.');
         const value = obj[key];
 
         // Handle nested JSON strings
         if (typeof value === 'string' && (key === 'problem' || key === 'json_output')) {
             try {
                 const parsed = JSON.parse(value);
-                result += `${indent}  <span class="json-key" data-path="${keyPath.join('.')}">"${key}": ${formatJsonForHighlight(parsed, keyPath, depth + 1)}</span>`;
+                result += `${indent}  <span class="json-key" data-path="${keyPathStr}">"${key}": ${formatJsonForHighlight(parsed, keyPath, depth + 1)}</span>`;
             } catch {
-                result += `${indent}  <span class="json-key" data-path="${keyPath.join('.')}">"${key}": ${formatJsonForHighlight(value, keyPath, depth + 1)}</span>`;
+                result += `${indent}  <span class="json-key" data-path="${keyPathStr}">"${key}": ${formatJsonForHighlight(value, keyPath, depth + 1)}</span>`;
             }
         } else {
-            result += `${indent}  <span class="json-key" data-path="${keyPath.join('.')}">"${key}": ${formatJsonForHighlight(value, keyPath, depth + 1)}</span>`;
+            result += `${indent}  <span class="json-key" data-path="${keyPathStr}">"${key}": ${formatJsonForHighlight(value, keyPath, depth + 1)}</span>`;
         }
 
         if (index < keys.length - 1) result += ',';
         result += '\n';
     });
-    result += `${indent}}`;
+    result += `${indent}}</span>`;
     return result;
 }
 
@@ -1254,23 +764,76 @@ function showInJsonPanel(basePath, targetKey, index = null) {
         el.classList.remove('json-highlight');
     });
 
-    // Find and highlight the target element
+    // Ensure JSON viewer is populated
+    const jsonViewer = document.getElementById('fullJsonViewer');
+    if (!jsonViewer || jsonViewer.innerHTML.trim().length === 0) {
+        console.log('JSON viewer not ready, refreshing...');
+        const container = document.getElementById('jsonContent');
+        if (container) {
+            container.innerHTML = `
+                <div class="json-viewer" id="fullJsonViewer">${formatJsonForHighlight(window.currentJsonData || window.fullJsonData, [])}</div>
+            `;
+        }
+    }
+
+    // Find and highlight the target element with longer timeout
     setTimeout(() => {
         let targetElement = null;
+        let searchPaths = [];
 
-        // Try different path combinations
+        // Build search paths based on the parameters
         if (targetKey === 'evidence' && typeof index === 'string') {
-            // For evidence items, look for the evidence ID
-            targetElement = document.querySelector(`[data-path*="evidence.${index}"]`) ||
-                document.querySelector(`[data-path*="${index}"]`);
+            // For evidence items, construct proper paths
+            searchPaths = [
+                `evidence.${index}`,
+                `solution.assessment.evidence.${index}`,
+                `assessment.evidence.${index}`,
+                index // fallback to just the evidence ID
+            ];
         } else if (targetKey === 'explanation' && typeof index === 'number') {
             // For explanation items
-            targetElement = document.querySelector(`[data-path*="explanation.${index}"]`);
+            searchPaths = [
+                `explanation.${index}`,
+                `solution.assessment.explanation.${index}`,
+                `assessment.explanation.${index}`
+            ];
+        } else if (basePath && basePath.length > 0) {
+            // For paths with base path
+            const fullPath = [...basePath, targetKey].join('.');
+            searchPaths = [
+                fullPath,
+                targetKey // fallback to just the key
+            ];
         } else {
             // For simple keys
-            const pathStr = [...basePath, targetKey].join('.');
-            targetElement = document.querySelector(`[data-path="${pathStr}"]`) ||
-                document.querySelector(`[data-path*="${targetKey}"]`);
+            searchPaths = [
+                targetKey,
+                `solution.assessment.${targetKey}`,
+                `assessment.${targetKey}`
+            ];
+        }
+
+        // Try each search path
+        for (const searchPath of searchPaths) {
+            // Try exact match first
+            targetElement = document.querySelector(`[data-path="${searchPath}"]`);
+            if (targetElement) break;
+
+            // Try partial match
+            targetElement = document.querySelector(`[data-path*="${searchPath}"]`);
+            if (targetElement) break;
+
+            // For evidence IDs, also try searching in the content
+            if (targetKey === 'evidence' && typeof index === 'string') {
+                const allElements = document.querySelectorAll('[data-path*="evidence"]');
+                for (const el of allElements) {
+                    if (el.textContent && el.textContent.includes(index)) {
+                        targetElement = el;
+                        break;
+                    }
+                }
+                if (targetElement) break;
+            }
         }
 
         if (targetElement) {
@@ -1282,19 +845,37 @@ function showInJsonPanel(basePath, targetKey, index = null) {
                 targetElement.classList.remove('json-highlight');
             }, 3000);
         } else {
-            // Fallback: search for any element containing the key
-            const fallbackElement = document.querySelector(`[data-path*="${targetKey}"]`);
-            if (fallbackElement) {
-                fallbackElement.classList.add('json-highlight');
-                fallbackElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => {
-                    fallbackElement.classList.remove('json-highlight');
-                }, 3000);
-            } else {
-                console.log('Target element not found for:', targetKey, index);
+            console.log('Target element not found for:', targetKey, index, 'Searched paths:', searchPaths);
+
+            // Comprehensive debug info
+            const allElements = document.querySelectorAll('[data-path]');
+            const allPaths = Array.from(allElements).map(el => el.getAttribute('data-path'));
+            const jsonViewer = document.getElementById('fullJsonViewer');
+
+            console.log('Total elements with data-path:', allElements.length);
+            console.log('JSON viewer exists:', !!jsonViewer);
+            console.log('JSON viewer innerHTML length:', jsonViewer ? jsonViewer.innerHTML.length : 0);
+
+            // Show sample of available paths
+            console.log('Sample available paths:', allPaths.slice(0, 10));
+
+            // Show filtered paths
+            const filteredPaths = allPaths.filter(path => path && (path.includes(targetKey) || (index && path.includes(index.toString()))));
+            console.log('Filtered paths:', filteredPaths);
+
+            // If no exact matches, show paths that might be related
+            if (filteredPaths.length === 0) {
+                const relatedPaths = allPaths.filter(path => {
+                    if (!path) return false;
+                    const pathLower = path.toLowerCase();
+                    const targetLower = targetKey.toLowerCase();
+                    const indexStr = index ? index.toString().toLowerCase() : '';
+                    return pathLower.includes(targetLower) || (indexStr && pathLower.includes(indexStr));
+                });
+                console.log('Related paths (case-insensitive):', relatedPaths);
             }
         }
-    }, 300); // Wait for panel to expand
+    }, 500); // Wait longer for panel to expand and DOM to be ready
 }
 
 // Close left panel
@@ -1381,77 +962,3 @@ function showError(message) {
     setTimeout(() => errorDiv.remove(), 5000);
 }
 
-// View local evidence file
-async function viewLocalEvidence(evidenceId) {
-    try {
-        // Load evidence source mapping
-        const runType = getRunTypeFromCurrentFolder();
-        const problemFolder = getProblemFolderFromCurrentFolder();
-
-        if (!runType || !problemFolder) {
-            showErrorInReadingMode('Cannot determine current folder context');
-            return;
-        }
-
-        // Load evidence_source.json from the same folder as assessment.json
-        const evidenceSourceData = await loadJSONFromAPI(problemFolder, 'evidence_source.json');
-
-        if (!evidenceSourceData || !evidenceSourceData.mappings) {
-            showErrorInReadingMode('No evidence source mapping found');
-            return;
-        }
-
-        const evidenceMapping = evidenceSourceData.mappings[evidenceId];
-        if (!evidenceMapping) {
-            showErrorInReadingMode(`No local file mapping found for evidence: ${evidenceId}`);
-            return;
-        }
-
-        // Show the PDF in the right panel
-        await displayLocalPDF(evidenceMapping, evidenceId);
-
-        // Highlight the active evidence
-        highlightActiveEvidence(evidenceId);
-
-    } catch (error) {
-        console.error('Error loading local evidence:', error);
-        showErrorInReadingMode('Failed to load local evidence file');
-    }
-}
-
-// Show local PDF in the right panel (using pdf_controls.js)
-async function displayLocalPDF(evidenceMapping, evidenceId) {
-    // Call the enhanced PDF viewer from pdf_controls.js
-    // The function in pdf_controls.js handles PDF.js integration and highlighting
-    if (typeof window.showLocalPDF === 'function') {
-        return await window.showLocalPDF(evidenceMapping, evidenceId);
-    } else {
-        console.warn('PDF controls not loaded, falling back to basic PDF viewer');
-        // Fallback implementation
-        const rightPanel = document.getElementById('rightPanel');
-        if (!rightPanel.classList.contains('expanded')) {
-            rightPanel.classList.add('expanded');
-        }
-
-        const readingModeViewer = document.getElementById('readingModeViewer');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-
-        const runType = getRunTypeFromCurrentFolder();
-        const problemFolder = getProblemFolderFromCurrentFolder();
-        const pdfPath = `/api/data/${runType}/${problemFolder}/evidences/${evidenceMapping.filename}`;
-
-        readingModeViewer.innerHTML = `
-            <div class="pdf-viewer-container">
-                <h4>📄 ${evidenceMapping.filename}</h4>
-                <embed src="${pdfPath}" type="application/pdf" width="100%" height="600px" />
-            </div>
-        `;
-        readingModeViewer.style.display = 'block';
-        loadingOverlay.style.display = 'none';
-    }
-}
-
-// Open PDF in new tab
-function openPDFInNewTab(pdfPath) {
-    window.open(pdfPath, '_blank');
-}

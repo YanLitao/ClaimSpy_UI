@@ -4,6 +4,8 @@
 let flowTrajectoryData = null;
 let flowMappingData = null;
 let isTrajectoryFlowVisible = false;
+let firstLoad = true;
+let firstNodeX = -1;
 
 // Initialize trajectory flow system
 function initTrajectoryFlow() {
@@ -53,7 +55,7 @@ function showTrajectoryFlow(explanationIndex = null) {
     leftPanel.innerHTML = `
         <div class="trajectory-flow-container">
             <div class="trajectory-flow-header">
-                <h3>🔍 Trajectory Flow</h3>
+                <h3>Trajectory Flow</h3>
                 <button class="close-btn" onclick="hideTrajectoryFlow()">✕</button>
             </div>
             <div class="trajectory-flow-content">
@@ -64,6 +66,9 @@ function showTrajectoryFlow(explanationIndex = null) {
 
     // Draw arrows after a short delay to ensure elements are rendered
     setTimeout(() => {
+        // First recalculate positions based on actual content
+        recalculateNodePositions();
+        // Then draw arrows with correct positions
         drawFlowArrows();
         // Draw evidence connections if explanationIndex is provided
         if (explanationIndex !== null) {
@@ -180,22 +185,57 @@ function extractStepsFromTrajectory(trajectory) {
 // Generate HTML for a single step node in flow chart
 function generateStepNodeHTML(step, index, stepDependencies) {
     const stepNum = step.number;
-    const yPosition = index * 400; // Further increased vertical spacing for observation items
+    // Use temporary positioning, will be recalculated after rendering
+    const yPosition = 50 + index * 200; // Initial rough positioning
 
     let html = `<div class="step-node" id="step-${stepNum}" data-step="${stepNum}" style="top: ${yPosition}px;">`;
 
     html += `<div class="step-header">Step ${stepNum}</div>`;
 
-    // Compact content display
+    // Collapsible thoughts display
     if (step.thought) {
-        const thoughtPreview = step.thought.length > 60 ?
-            step.thought.substring(0, 60) + '...' : step.thought;
+        // Format thought text: trim whitespace and convert **text**, ##text, ###text to bold, and - text to bullet
+        const formatThought = (text) => {
+            return text.trim()
+                // Bold for **text**
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                // Bold for ##text or ###text
+                .replace(/###?(.*?)$/gm, '<b>$1</b>')
+                // Convert "- text" at start of line to bullet point
+                .replace(/^- (.*)$/gm, '• $1')
+                // Normalize spaces and <br>
+                .replace(/\s+/g, ' ')
+                .replace(/<br>\s+/g, '<br>')
+                .replace(/\s+<br>/g, '<br>');
+        };
+
+        // Create 3-line summary (approximately 150 characters)
+        const thoughtLines = step.thought.trim().split('\n').filter(line => line.trim());
+        let thoughtSummary = thoughtLines.slice(0, 3).join('\n').trim();
+        if (thoughtSummary.length > 150) {
+            thoughtSummary = thoughtSummary.substring(0, 150) + '...';
+        } else if (thoughtLines.length > 3) {
+            thoughtSummary += '...';
+        }
+
+        const needsExpansion = step.thought.trim().length > 150 || thoughtLines.length > 3;
+
         html += `
             <div class="step-content thought-content">
                 <span class="content-icon">💭</span>
-                <span class="content-text" title="${escapeHtml(step.thought)}">
-                    ${escapeHtml(thoughtPreview)}
-                </span>
+                <div class="thought-container">
+                    <div class="thought-summary" id="thought-summary-${stepNum}">
+                        ${formatThought(thoughtSummary)}
+                    </div>
+                    ${needsExpansion ? `
+                        <div class="thought-full" id="thought-full-${stepNum}" style="display: none;">
+                            ${formatThought(step.thought)}
+                        </div>
+                        <button class="thought-toggle-btn" onclick="toggleThought(${stepNum})" id="thought-toggle-${stepNum}">
+                            Show More
+                        </button>
+                    ` : ''}
+                </div>
             </div>
         `;
     }
@@ -209,8 +249,8 @@ function generateStepNodeHTML(step, index, stepDependencies) {
         `;
     }
 
-    if (step.observation !== null) {
-        if (Array.isArray(step.observation)) {
+    if (step.observation !== null && step.observation) {
+        if (Array.isArray(step.observation) && step.observation.length > 0) {
             // Show individual observation items as small boxes
             html += `
                 <div class="step-content obs-content">
@@ -236,7 +276,7 @@ function generateStepNodeHTML(step, index, stepDependencies) {
                 html += `
                     <div class="obs-item-box" id="obs-${stepNum}-${itemIndex}" data-step="${stepNum}" data-index="${itemIndex}" 
                          title="${escapeHtml(isSearchResult ? item.citation : JSON.stringify(item))}">
-                        <span class="obs-item-index">[${itemIndex}]</span>
+                        <span class="obs-item-index">${itemIndex}</span>
                         <span class="obs-item-text">${escapeHtml(itemPreview)}</span>
                     </div>
                 `;
@@ -246,16 +286,16 @@ function generateStepNodeHTML(step, index, stepDependencies) {
         } else {
             // Single observation
             let obsPreview = '';
-            if (typeof step.observation === 'string') {
+            if (typeof step.observation === 'string' && step.observation !== "Completed.") {
                 obsPreview = step.observation.length > 40 ?
                     step.observation.substring(0, 40) + '...' : step.observation;
             } else {
-                obsPreview = 'Data result';
+                obsPreview = '';
             }
 
             html += `
                 <div class="step-content obs-content">
-                    <span class="content-icon">👁️</span>
+                    <span class="content-icon"></span>
                     <span class="content-text">${escapeHtml(obsPreview)}</span>
                 </div>
             `;
@@ -270,7 +310,7 @@ function generateStepNodeHTML(step, index, stepDependencies) {
 function generateObservationHTML(observation, stepNum) {
     let html = `
         <div class="step-section observation-section">
-            <div class="section-title">👁️ Observation</div>
+            <div class="section-title">Observation</div>
             <div class="section-content">
     `;
 
@@ -329,7 +369,7 @@ function generateReasoningNodeHTML(stepCount) {
 
     return `
         <div class="reasoning-node" id="reasoning-node" style="top: ${yPosition}px;">
-            <div class="step-header">📋 Final Reasoning</div>
+            <div class="step-header">Final Reasoning</div>
             <div class="step-content reasoning-content">
                 <span class="content-text" title="${escapeHtml(reasoning || '')}">
                     ${escapeHtml(reasoningPreview || 'No reasoning available')}
@@ -348,7 +388,7 @@ function generateAnswerNodeHTML(stepCount) {
 
     return `
         <div class="answer-node" id="answer-node" style="top: ${yPosition}px;">
-            <div class="step-header">📝 Final Answer</div>
+            <div class="step-header">Final Answer</div>
             <div class="step-content answer-content">
                 <span class="content-text" title="${escapeHtml(answer || '')}">
                     ${escapeHtml(answerPreview || 'No answer available')}
@@ -382,66 +422,8 @@ function drawFlowArrows() {
     // Clear existing arrows
     svg.innerHTML = '';
 
-    // Add SVG arrow marker definitions
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-
-    // Blue arrowhead for regular connections
-    const arrowhead = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-    arrowhead.setAttribute('id', 'arrowhead');
-    arrowhead.setAttribute('markerWidth', '10');
-    arrowhead.setAttribute('markerHeight', '7');
-    arrowhead.setAttribute('refX', '9');
-    arrowhead.setAttribute('refY', '3.5');
-    arrowhead.setAttribute('orient', 'auto');
-    const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    arrowPath.setAttribute('d', 'M0,0 L0,7 L10,3.5 z');
-    arrowPath.setAttribute('fill', '#007bff');
-    arrowhead.appendChild(arrowPath);
-    defs.appendChild(arrowhead);
-
-    // Purple arrowhead for reasoning connections
-    const arrowheadPurple = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-    arrowheadPurple.setAttribute('id', 'arrowhead-purple');
-    arrowheadPurple.setAttribute('markerWidth', '10');
-    arrowheadPurple.setAttribute('markerHeight', '7');
-    arrowheadPurple.setAttribute('refX', '9');
-    arrowheadPurple.setAttribute('refY', '3.5');
-    arrowheadPurple.setAttribute('orient', 'auto');
-    const arrowPathPurple = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    arrowPathPurple.setAttribute('d', 'M0,0 L0,7 L10,3.5 z');
-    arrowPathPurple.setAttribute('fill', '#6f42c1');
-    arrowheadPurple.appendChild(arrowPathPurple);
-    defs.appendChild(arrowheadPurple);
-
-    // Yellow arrowhead for specific result connections
-    const arrowheadYellow = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-    arrowheadYellow.setAttribute('id', 'arrowhead-yellow');
-    arrowheadYellow.setAttribute('markerWidth', '10');
-    arrowheadYellow.setAttribute('markerHeight', '7');
-    arrowheadYellow.setAttribute('refX', '9');
-    arrowheadYellow.setAttribute('refY', '3.5');
-    arrowheadYellow.setAttribute('orient', 'auto');
-    const arrowPathYellow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    arrowPathYellow.setAttribute('d', 'M0,0 L0,7 L10,3.5 z');
-    arrowPathYellow.setAttribute('fill', '#ffc107');
-    arrowheadYellow.appendChild(arrowPathYellow);
-    defs.appendChild(arrowheadYellow);
-
-    // Red arrowhead for evidence connections
-    const arrowheadRed = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-    arrowheadRed.setAttribute('id', 'evidence-arrowhead');
-    arrowheadRed.setAttribute('markerWidth', '10');
-    arrowheadRed.setAttribute('markerHeight', '7');
-    arrowheadRed.setAttribute('refX', '9');
-    arrowheadRed.setAttribute('refY', '3.5');
-    arrowheadRed.setAttribute('orient', 'auto');
-    const arrowPathRed = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    arrowPathRed.setAttribute('d', 'M0,0 L0,7 L10,3.5 z');
-    arrowPathRed.setAttribute('fill', '#ff6b6b');
-    arrowheadRed.appendChild(arrowPathRed);
-    defs.appendChild(arrowheadRed);
-
-    svg.appendChild(defs);
+    // No need for marker definitions anymore - using manual triangles
+    console.log('Using manual triangles instead of SVG markers');
 
     const trajectory = flowTrajectoryData.trajectory || flowTrajectoryData;
     const stepDependencies = flowMappingData.step_dependencies || {};
@@ -463,6 +445,13 @@ function drawFlowArrows() {
     if (flowDiagram) {
         flowDiagram.style.minHeight = minHeight + 'px';
     }
+
+    // Ensure SVG is properly positioned and sized
+    const containerRect = container.getBoundingClientRect();
+    svg.setAttribute('width', containerRect.width);
+
+    // Force layout recalculation before drawing arrows
+    container.offsetHeight; // Force reflow
 
     // Draw arrows for each dependency
     steps.forEach(step => {
@@ -487,85 +476,114 @@ function drawFlowArrows() {
 
 // Draw a single arrow between two steps
 function drawArrow(svg, fromStep, toStep, resultIndex) {
+    console.log(`=== drawArrow called: ${fromStep} -> ${toStep}, resultIndex: ${resultIndex} ===`);
+
     let fromElement, toElement;
 
     // Handle connection from specific observation item if resultIndex is specified
-    if (resultIndex !== null && resultIndex !== undefined) {
-        fromElement = document.getElementById(`obs-${fromStep}-${resultIndex}`);
-        // If specific observation item not found, fall back to step
-        if (!fromElement) {
-            fromElement = document.getElementById(`step-${fromStep}`);
-        }
-    } else {
-        fromElement = document.getElementById(`step-${fromStep}`);
-    }
+
+    fromElement = document.getElementById(`step-${fromStep}`);
 
     toElement = document.getElementById(`step-${toStep}`);
 
     if (!fromElement || !toElement) return;
 
-    const fromRect = fromElement.getBoundingClientRect();
-    const toRect = toElement.getBoundingClientRect();
-    const containerRect = svg.parentElement.getBoundingClientRect();
+    // Force layout recalculation to ensure accurate positions
+    fromElement.offsetHeight;
+    toElement.offsetHeight;
 
-    // Calculate positions relative to container
+    // Force another reflow to make sure positions are updated
+    const container = svg.parentElement.querySelector('.flow-diagram');
+    if (container) {
+        container.offsetHeight; // Force container reflow
+    }
+
+    // Get the flow diagram container (parent of SVG)
+    const flowContainer = svg.parentElement;
+    const flowContainerRect = flowContainer.getBoundingClientRect();
+
+    // Calculate positions relative to the flow container using offsetTop/offsetLeft
     let fromX, fromY;
+
     if (resultIndex !== null && resultIndex !== undefined && fromElement.id.includes('obs-')) {
         // Arrow from specific observation item - from right side
-        fromX = fromRect.right - containerRect.left;
-        fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
+        fromX = fromElement.offsetLeft + fromElement.offsetWidth;
+        if (firstLoad && firstNodeX === -1) {
+            firstNodeX = fromX;
+            firstLoad = false;
+        }
+        fromY = fromElement.offsetTop + fromElement.offsetHeight / 2;
     } else {
         // Arrow from step - from bottom center
-        fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
-        fromY = fromRect.bottom - containerRect.top;
+        // Force reflow before reading positions
+
+        fromX = fromElement.offsetLeft + fromElement.offsetWidth / 2;
+        if (firstLoad && firstNodeX === -1) {
+            firstNodeX = fromX - 25;
+            firstLoad = false;
+        }
+        fromX = firstNodeX; // Keep all arrows aligned to first node's X position
+        // Use parsed style.top instead of offsetTop for accurate positioning
+        const fromTopValue = parseInt(fromElement.style.top) || fromElement.offsetTop;
+        fromY = fromTopValue + fromElement.offsetHeight;
     }
 
     // Arrow to step - to top center
-    const toX = toRect.left + toRect.width / 2 - containerRect.left;
-    const toY = toRect.top - containerRect.top;
+    // Force one more reflow before reading positions
+    toElement.getBoundingClientRect(); // This forces a style recalculation
+
+    const toX = firstNodeX;
+    // Use parsed style.top instead of offsetTop for accurate positioning
+    const toTopValue = parseInt(toElement.style.top) || toElement.offsetTop;
+    const toY = toTopValue;
 
     // Create curved path for vertical flow
     let path;
     let midX; // Declare midX outside the condition
 
-    if (resultIndex !== null && resultIndex !== undefined && fromElement.id.includes('obs-')) {
-        // Curved path from observation item to step top
-        midX = (fromX + toX) / 2 + 30;
-        path = `M ${fromX} ${fromY} Q ${midX} ${fromY} ${midX} ${(fromY + toY) / 2} Q ${midX} ${toY} ${toX} ${toY}`;
+
+    // Straight vertical path from step bottom to next step top
+    midX = (fromX + toX) / 2; // Set midX for vertical paths too
+    const midY = (fromY + toY) / 2;
+
+    // Ensure minimum path length for arrow visibility
+    const pathLength = Math.abs(toY - fromY);
+    if (pathLength < 20) {
+        // For very short paths, make them straight lines
+        path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
     } else {
-        // Straight vertical path from step bottom to next step top
-        midX = (fromX + toX) / 2; // Set midX for vertical paths too
-        const midY = (fromY + toY) / 2;
         path = `M ${fromX} ${fromY} Q ${fromX} ${midY} ${toX} ${midY} Q ${toX} ${midY} ${toX} ${toY}`;
     }
 
-    // Create path element
+    // Create path element without marker
     const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     pathElement.setAttribute('d', path);
     pathElement.setAttribute('stroke', '#007bff'); // All arrows blue
     pathElement.setAttribute('stroke-width', '2');
     pathElement.setAttribute('fill', 'none');
-    pathElement.setAttribute('marker-end', 'url(#arrowhead)'); // All arrows use blue arrowhead
+    pathElement.setAttribute('opacity', '1');
 
-    // Add dash pattern for specific result connections
-    if (resultIndex !== null && resultIndex !== undefined) {
-        pathElement.setAttribute('stroke-dasharray', '5,5');
-    }
+    // Create triangle arrowhead at the end point
+    const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const arrowSize = 8;
+    // Calculate triangle points for downward arrow (since most arrows go down)
+    const trianglePoints = `${toX},${toY} ${toX - arrowSize},${toY - arrowSize} ${toX + arrowSize},${toY - arrowSize}`;
+    triangle.setAttribute('points', trianglePoints);
+    triangle.setAttribute('fill', '#007bff');
+    triangle.setAttribute('stroke', '#007bff');
+    triangle.setAttribute('stroke-width', '1');
+
+    // Debug: Log path details
+    console.log('Path created:', {
+        path: path,
+        fromX: fromX, fromY: fromY,
+        toX: toX, toY: toY,
+        pathLength: pathLength,
+        trianglePoints: trianglePoints
+    });
 
     svg.appendChild(pathElement);
-
-    // Add label text if result index specified
-    if (resultIndex !== null && resultIndex !== undefined) {
-        const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        textElement.setAttribute('x', midX);
-        textElement.setAttribute('y', (fromY + toY) / 2 - 5);
-        textElement.setAttribute('text-anchor', 'middle');
-        textElement.setAttribute('fill', '#007bff'); // Blue label text
-        textElement.setAttribute('font-size', '10px');
-        textElement.setAttribute('font-weight', 'bold');
-        textElement.textContent = `[${resultIndex}]`;
-        svg.appendChild(textElement);
-    }
+    svg.appendChild(triangle);
 }
 
 // Draw arrow to reasoning node
@@ -575,14 +593,13 @@ function drawArrowToReasoning(svg, fromStep) {
 
     if (!fromElement || !toElement) return;
 
-    const fromRect = fromElement.getBoundingClientRect();
-    const toRect = toElement.getBoundingClientRect();
-    const containerRect = svg.parentElement.getBoundingClientRect();
-
-    const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
-    const fromY = fromRect.bottom - containerRect.top;
-    const toX = toRect.left + toRect.width / 2 - containerRect.left;
-    const toY = toRect.top - containerRect.top;
+    // Use offset positions relative to the flow container
+    const fromX = firstNodeX;
+    const fromTopValue = parseInt(fromElement.style.top) || fromElement.offsetTop;
+    const fromY = fromTopValue + fromElement.offsetHeight;
+    const toX = fromX;
+    const toTopValue = parseInt(toElement.style.top) || toElement.offsetTop;
+    const toY = toTopValue;
 
     const midY = (fromY + toY) / 2;
     const path = `M ${fromX} ${fromY} Q ${fromX} ${midY} ${toX} ${midY} Q ${toX} ${midY} ${toX} ${toY}`;
@@ -592,9 +609,21 @@ function drawArrowToReasoning(svg, fromStep) {
     pathElement.setAttribute('stroke', '#007bff'); // Blue arrow for reasoning too
     pathElement.setAttribute('stroke-width', '2');
     pathElement.setAttribute('fill', 'none');
-    pathElement.setAttribute('marker-end', 'url(#arrowhead)'); // Use blue arrowhead
+    pathElement.setAttribute('opacity', '1');
+
+    // Create triangle arrowhead at the end point
+    const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const arrowSize = 8;
+    const trianglePoints = `${toX},${toY} ${toX - arrowSize},${toY - arrowSize} ${toX + arrowSize},${toY - arrowSize}`;
+    triangle.setAttribute('points', trianglePoints);
+    triangle.setAttribute('fill', '#007bff');
+    triangle.setAttribute('stroke', '#007bff');
+    triangle.setAttribute('stroke-width', '1');
+
+    console.log('Creating reasoning arrow with path:', path, 'triangle at:', trianglePoints);
 
     svg.appendChild(pathElement);
+    svg.appendChild(triangle);
 }
 
 // Draw arrow from reasoning to answer node
@@ -604,14 +633,13 @@ function drawArrowFromReasoningToAnswer(svg) {
 
     if (!fromElement || !toElement) return;
 
-    const fromRect = fromElement.getBoundingClientRect();
-    const toRect = toElement.getBoundingClientRect();
-    const containerRect = svg.parentElement.getBoundingClientRect();
-
-    const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
-    const fromY = fromRect.bottom - containerRect.top;
-    const toX = toRect.left + toRect.width / 2 - containerRect.left;
-    const toY = toRect.top - containerRect.top;
+    // Use offset positions relative to the flow container
+    const fromX = firstNodeX;
+    const fromTopValue = parseInt(fromElement.style.top) || fromElement.offsetTop;
+    const fromY = fromTopValue + fromElement.offsetHeight;
+    const toX = fromX
+    const toTopValue = parseInt(toElement.style.top) || toElement.offsetTop;
+    const toY = toTopValue;
 
     const midY = (fromY + toY) / 2;
     const path = `M ${fromX} ${fromY} Q ${fromX} ${midY} ${toX} ${midY} Q ${toX} ${midY} ${toX} ${toY}`;
@@ -621,9 +649,21 @@ function drawArrowFromReasoningToAnswer(svg) {
     pathElement.setAttribute('stroke', '#007bff'); // Blue arrow
     pathElement.setAttribute('stroke-width', '2');
     pathElement.setAttribute('fill', 'none');
-    pathElement.setAttribute('marker-end', 'url(#arrowhead)'); // Use blue arrowhead
+    pathElement.setAttribute('opacity', '1');
+
+    // Create triangle arrowhead at the end point
+    const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const arrowSize = 8;
+    const trianglePoints = `${toX},${toY} ${toX - arrowSize},${toY - arrowSize} ${toX + arrowSize},${toY - arrowSize}`;
+    triangle.setAttribute('points', trianglePoints);
+    triangle.setAttribute('fill', '#007bff');
+    triangle.setAttribute('stroke', '#007bff');
+    triangle.setAttribute('stroke-width', '1');
+
+    console.log('Creating answer arrow with path:', path, 'triangle at:', trianglePoints);
 
     svg.appendChild(pathElement);
+    svg.appendChild(triangle);
 }
 
 // Check if trajectory flow is currently visible
@@ -660,22 +700,26 @@ function drawEvidenceConnections(explanationIndex) {
         const uniqueConnectionId = `${explanationIdx}-${evidenceId}`;
         const trajectoryMapping = evidenceToTrajectory[evidenceId];
 
-        if (trajectoryMapping && Array.isArray(trajectoryMapping)) {
+        if (trajectoryMapping && Array.isArray(trajectoryMapping) && trajectoryMapping.length > 0) {
+            // Only connect to the first step, ignore additional steps
             const stepNumber = trajectoryMapping[0];
-            const observationIndex = trajectoryMapping.length > 1 ? trajectoryMapping[1] : null;
 
-            // Find the target element in trajectory flow
-            let targetElement;
-            if (observationIndex !== null) {
-                // Connect to specific observation item
-                targetElement = document.querySelector(`#obs-${stepNumber}-${observationIndex}`);
-            } else {
-                // Connect to step node
-                targetElement = document.querySelector(`#step-${stepNumber}`);
-            }
+            // Connect to step node only, not to specific observation items
+            const targetElement = document.querySelector(`#step-${stepNumber}`);
 
             if (targetElement) {
                 drawEvidenceConnectionLine(evidenceItem, targetElement, uniqueConnectionId);
+
+                // Add visual distinction to observation items if mapping has specific indices
+                if (trajectoryMapping.length > 1) {
+                    for (let i = 1; i < trajectoryMapping.length; i++) {
+                        const obsIndex = trajectoryMapping[i];
+                        const obsElement = document.querySelector(`#obs-${stepNumber}-${obsIndex}`);
+                        if (obsElement) {
+                            obsElement.classList.add('highlighted-observation');
+                        }
+                    }
+                }
             }
         }
     });
@@ -689,12 +733,12 @@ function drawEvidenceConnectionLine(evidenceElement, trajectoryElement, evidence
     connectionSvg.setAttribute('id', `connection-${evidenceId}`);
     connectionSvg.style.cssText = `
         position: fixed;
-        top: 0;
+        top: 100px;
         left: 0;
         width: 100vw;
-        height: 100vh;
+        height: calc(100vh - 100px);
         pointer-events: none;
-        z-index: 1000;
+        z-index: 900;
         overflow: visible;
     `;
 
@@ -703,37 +747,43 @@ function drawEvidenceConnectionLine(evidenceElement, trajectoryElement, evidence
     if (!defs) {
         defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-        // Red arrowhead for evidence connections
+        // Blue thin arrowhead for evidence connections
         const arrowhead = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
         arrowhead.setAttribute('id', `evidence-arrowhead-${evidenceId}`);
-        arrowhead.setAttribute('markerWidth', '10');
-        arrowhead.setAttribute('markerHeight', '7');
-        arrowhead.setAttribute('refX', '9');
-        arrowhead.setAttribute('refY', '3.5');
+        arrowhead.setAttribute('markerWidth', '8');
+        arrowhead.setAttribute('markerHeight', '6');
+        arrowhead.setAttribute('refX', '7');
+        arrowhead.setAttribute('refY', '3');
         arrowhead.setAttribute('orient', 'auto');
 
         const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arrowPath.setAttribute('d', 'M0,0 L0,7 L10,3.5 z');
-        arrowPath.setAttribute('fill', '#ff6b6b');
+        arrowPath.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+        arrowPath.setAttribute('fill', '#007bff');
 
         arrowhead.appendChild(arrowPath);
         defs.appendChild(arrowhead);
         connectionSvg.appendChild(defs);
     }
 
-    // Add line element
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('stroke', '#ff6b6b');
-    line.setAttribute('stroke-width', '3');
-    line.setAttribute('stroke-dasharray', '8,4');
-    line.setAttribute('marker-end', `url(#evidence-arrowhead-${evidenceId})`);
-    line.setAttribute('opacity', '0.9');
+    // Add path element for right-angle turns instead of straight line
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('stroke', '#007bff');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('opacity', '1');
 
-    connectionSvg.appendChild(line);
+    connectionSvg.appendChild(path);
+
+    // Store triangle reference for later creation
+    connectionSvg.evidenceTriangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    connectionSvg.evidenceTriangle.setAttribute('fill', '#007bff');
+    connectionSvg.evidenceTriangle.setAttribute('stroke', '#007bff');
+    connectionSvg.evidenceTriangle.setAttribute('stroke-width', '1');
+    connectionSvg.appendChild(connectionSvg.evidenceTriangle);
     document.body.appendChild(connectionSvg);
 
-    // Update line position
-    updateEvidenceConnectionLine(evidenceElement, trajectoryElement, line);
+    // Update path position with right-angle turns
+    updateEvidenceConnectionPath(evidenceElement, trajectoryElement, path);
 
     // Store reference for updates
     if (!window.evidenceConnections) {
@@ -741,33 +791,70 @@ function drawEvidenceConnectionLine(evidenceElement, trajectoryElement, evidence
     }
     window.evidenceConnections.set(evidenceId, {
         svg: connectionSvg,
-        line: line,
+        line: path,
         evidenceElement: evidenceElement,
         trajectoryElement: trajectoryElement
     });
 }
 
-// Update the position of an evidence connection line
-function updateEvidenceConnectionLine(evidenceElement, trajectoryElement, lineElement) {
+// Update the position of an evidence connection path with right-angle turns
+function updateEvidenceConnectionPath(evidenceElement, trajectoryElement, pathElement) {
     try {
         const evidenceRect = evidenceElement.getBoundingClientRect();
         const trajectoryRect = trajectoryElement.getBoundingClientRect();
 
         // Calculate connection points - trajectory to evidence (from trajectory right to evidence left side)
+        // Adjust coordinates relative to SVG position (which starts at top: 100px)
         const startX = trajectoryRect.right;
-        const startY = trajectoryRect.top + trajectoryRect.height / 2;
+        const startY = trajectoryRect.top + trajectoryRect.height / 2 - 100; // Subtract header height
         const endX = evidenceRect.left; // Left edge of evidence item
-        const endY = evidenceRect.top + evidenceRect.height / 2; // Vertical center
+        const endY = evidenceRect.top + evidenceRect.height / 2 - 100; // Subtract header height
+
+        // Create right-angle path: horizontal from trajectory, then vertical, then horizontal to evidence
+        const midX = startX + (endX - startX) / 2;
+
+        const pathData = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        pathElement.setAttribute('d', pathData);
+
+        // Make sure the path is visible with blue color
+        pathElement.setAttribute('stroke', '#007bff');
+        pathElement.setAttribute('stroke-width', '2');
+        pathElement.setAttribute('opacity', '1');
+
+        // Update triangle position at the end point (pointing right)
+        const svg = pathElement.parentElement;
+        if (svg && svg.evidenceTriangle) {
+            const arrowSize = 6;
+            const trianglePoints = `${endX},${endY} ${endX - arrowSize},${endY - arrowSize} ${endX - arrowSize},${endY + arrowSize}`;
+            svg.evidenceTriangle.setAttribute('points', trianglePoints);
+        }
+    } catch (error) {
+        console.error('Error updating evidence connection path:', error);
+    }
+}
+
+// Legacy function for backward compatibility
+function updateEvidenceConnectionLine(evidenceElement, trajectoryElement, lineElement) {
+    // If it's actually a path element, use the new function
+    if (lineElement.tagName === 'path') {
+        updateEvidenceConnectionPath(evidenceElement, trajectoryElement, lineElement);
+        return;
+    }
+
+    // Original line logic (kept for any remaining line elements)
+    try {
+        const evidenceRect = evidenceElement.getBoundingClientRect();
+        const trajectoryRect = trajectoryElement.getBoundingClientRect();
+
+        const startX = trajectoryRect.right;
+        const startY = trajectoryRect.top + trajectoryRect.height / 2 - 100; // Subtract header height
+        const endX = evidenceRect.left;
+        const endY = evidenceRect.top + evidenceRect.height / 2 - 100; // Subtract header height
 
         lineElement.setAttribute('x1', startX);
         lineElement.setAttribute('y1', startY);
         lineElement.setAttribute('x2', endX);
         lineElement.setAttribute('y2', endY);
-
-        // Make sure the line is visible
-        lineElement.setAttribute('stroke', '#ff6b6b');
-        lineElement.setAttribute('stroke-width', '3');
-        lineElement.setAttribute('opacity', '0.9');
     } catch (error) {
         console.error('Error updating evidence connection line:', error);
     }
@@ -869,9 +956,6 @@ function scrollToRelevantPositions(explanationIndex) {
                 const centerOffset = leftPanelRect.height / 2 - targetRect.height / 2;
                 const scrollTop = leftPanelContent.scrollTop + relativeTop - centerOffset;
 
-                console.log('Scrolling left panel to:', Math.max(0, scrollTop));
-                console.log('Using scroll container:', leftPanelContent.className);
-
                 // Force scroll even if smooth behavior fails
                 leftPanelContent.scrollTop = Math.max(0, scrollTop);
 
@@ -896,9 +980,6 @@ function scrollToRelevantPositions(explanationIndex) {
                 const relativeTop = evidenceRect.top - mainContentRect.top;
                 const centerOffset = window.innerHeight / 2 - evidenceRect.height / 2;
                 const scrollTop = mainContent.scrollTop + relativeTop - centerOffset;
-
-                console.log('Scrolling main content to:', Math.max(0, scrollTop));
-                console.log('Using main content container:', mainContent.className);
 
                 // Force scroll
                 mainContent.scrollTop = Math.max(0, scrollTop);
@@ -945,10 +1026,10 @@ window.trajectoryFlow = {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.style.cssText = `
             position: fixed;
-            top: 0;
+            top: 100px;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: calc(100vh - 100px);
             pointer-events: none;
             z-index: 2000;
             background: rgba(255,0,0,0.1);
@@ -972,3 +1053,106 @@ window.trajectoryFlow = {
         }, 5000);
     }
 };
+
+// Toggle thought display and recalculate node positions
+function toggleThought(stepNum) {
+    const summaryEl = document.getElementById(`thought-summary-${stepNum}`);
+    const fullEl = document.getElementById(`thought-full-${stepNum}`);
+    const toggleBtn = document.getElementById(`thought-toggle-${stepNum}`);
+
+    if (!summaryEl || !fullEl || !toggleBtn) return;
+
+    const isExpanded = fullEl.style.display !== 'none';
+
+    if (isExpanded) {
+        // Collapse
+        summaryEl.style.display = 'block';
+        fullEl.style.display = 'none';
+        toggleBtn.textContent = 'Show More';
+    } else {
+        // Expand
+        summaryEl.style.display = 'none';
+        fullEl.style.display = 'block';
+        toggleBtn.textContent = 'Show Less';
+    }
+
+    // Recalculate positions after a short delay
+    setTimeout(() => {
+        recalculateNodePositions();
+        // Clear and redraw arrows after repositioning
+        const svg = document.getElementById('flowArrows');
+        if (svg) {
+            svg.innerHTML = '';
+        }
+        drawFlowArrows();
+        // Redraw evidence connections if they exist
+        if (document.querySelector('.evidence-connection-line')) {
+            const activeExplanationIndex = getActiveExplanationIndex();
+            if (activeExplanationIndex !== null) {
+                clearEvidenceConnections();
+                drawEvidenceConnections(activeExplanationIndex);
+            }
+        }
+    }, 100);
+}
+
+// Recalculate node positions based on content height
+function recalculateNodePositions() {
+    const stepNodes = document.querySelectorAll('.step-node');
+    let currentY = 50; // Starting position
+
+    stepNodes.forEach((node, index) => {
+        node.style.top = currentY + 'px';
+
+        // Force reflow to get accurate height
+        node.offsetHeight;
+
+        // Get actual height of the node after reflow
+        const nodeHeight = node.offsetHeight;
+        currentY += nodeHeight + 30; // 30px spacing between nodes
+    });
+
+    // Update reasoning and answer node positions
+    const reasoningNode = document.querySelector('.reasoning-node');
+    if (reasoningNode) {
+        reasoningNode.style.top = currentY + 'px';
+        reasoningNode.offsetHeight; // Force reflow
+        currentY += reasoningNode.offsetHeight + 30;
+    }
+
+    const answerNode = document.querySelector('.answer-node');
+    if (answerNode) {
+        answerNode.style.top = currentY + 'px';
+    }
+
+    // Update the container height to accommodate all nodes
+    const flowDiagram = document.querySelector('.flow-diagram');
+    if (flowDiagram) {
+        const totalHeight = currentY + 100; // Add some padding
+        flowDiagram.style.minHeight = totalHeight + 'px';
+
+        // Update SVG height as well
+        const svg = document.getElementById('flowArrows');
+        if (svg) {
+            svg.setAttribute('height', totalHeight);
+        }
+
+        // Force a complete reflow after all position updates
+        flowDiagram.offsetHeight;
+
+        // Force each step node to reflow again to ensure positions are committed
+        stepNodes.forEach(node => {
+            node.offsetTop; // Force individual reflow
+        });
+    }
+}
+
+// Helper function to get the currently active explanation index
+function getActiveExplanationIndex() {
+    const expandedEvidenceSection = document.querySelector('.evidence-section.expanded');
+    if (expandedEvidenceSection) {
+        const match = expandedEvidenceSection.id.match(/evidenceSection(\d+)/);
+        return match ? parseInt(match[1]) : null;
+    }
+    return null;
+}

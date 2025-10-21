@@ -86,7 +86,7 @@ function createExplanationOverlay(snippet, lineNumber, snippetNumber = null) {
         padding: 12px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         backdrop-filter: blur(5px);
-        z-index: 1000;
+        z-index: 500;
         font-size: 0.85rem;
         line-height: 1.4;
         word-wrap: break-word;
@@ -103,7 +103,7 @@ function createExplanationOverlay(snippet, lineNumber, snippetNumber = null) {
 }
 
 // Apply explanations to Python code display
-function applyCodeExplanations(codeElement, explanationData) {
+function applyCodeExplanations(codeElement, explanationData, showByDefault = true) {
     if (!explanationData || !explanationData.snippets) {
         return;
     }
@@ -114,7 +114,7 @@ function applyCodeExplanations(codeElement, explanationData) {
 
     // Create a wrapper for positioning overlays
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position: relative; overflow: visible;';
+    wrapper.style.cssText = 'position: relative;';
 
     // Move the original code element inside the wrapper
     codeElement.parentNode.insertBefore(wrapper, codeElement);
@@ -261,70 +261,191 @@ function applyCodeExplanations(codeElement, explanationData) {
                 }, 100);
             };
 
-            // Initially hide the overlay
-            overlay.style.opacity = '0';
-            overlay.style.transform = 'translateX(10px)';
-            overlay.style.visibility = 'hidden';
+            // Initially set overlay visibility based on mode
+            if (showByDefault) {
+                overlay.style.opacity = '1';
+                overlay.style.transform = 'translateX(0)';
+                overlay.style.visibility = 'visible';
+                overlay.style.right = '0px';
+                overlay.style.zIndex = '500';
+            } else {
+                overlay.style.opacity = '0';
+                overlay.style.transform = 'translateX(10px)';
+                overlay.style.visibility = 'hidden';
+                overlay.style.zIndex = '500';
+            }
             overlay.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
 
-            // Add event listeners for hover
-            overlay.addEventListener('mouseenter', showOverlay);
-            overlay.addEventListener('mouseleave', hideOverlay);
+            // Hover functions for z-index management
+            const bringToFront = () => {
+                overlay.style.zIndex = '600';
+                trigger.style.zIndex = '599';
+            };
+
+            const sendToBack = () => {
+                overlay.style.zIndex = '500';
+                trigger.style.zIndex = '499';
+            };
+
+            // Add event listeners based on mode
+            if (!showByDefault) {
+                // Hover to show mode
+                overlay.addEventListener('mouseenter', showOverlay);
+                overlay.addEventListener('mouseleave', hideOverlay);
+            } else {
+                // Always show mode - just manage z-index
+                overlay.addEventListener('mouseenter', bringToFront);
+                overlay.addEventListener('mouseleave', sendToBack);
+            }
 
             // Create a trigger area over the code lines using precise positioning
             const trigger = document.createElement('div');
             trigger.style.cssText = `
                 position: absolute;
-                left: 0;
+                left: -10px;
                 right: 0;
                 height: ${Math.max(snippetHeightPx, actualLineHeight)}px;
                 top: ${startLinePosition}px;
-                z-index: 999;
+                z-index: 499;
                 background: rgba(52, 152, 219, 0.05);
                 border-left: 3px solid #3498db;
                 cursor: help;
-                opacity: 0;
+                opacity: ${showByDefault ? '0.8' : '0'};
                 transition: opacity 0.2s ease;
                 border-radius: 2px;
             `;
 
-            // Add snippet indicator
-            const indicator = document.createElement('div');
-            indicator.style.cssText = `
-                position: absolute;
-                right: 8px;
-                top: 2px;
-                background: #3498db;
-                color: white;
-                border-radius: 10px;
-                width: 20px;
-                height: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 11px;
-                font-weight: bold;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-                pointer-events: none;
-            `;
-            indicator.textContent = snippetIndex + 1;
+            // Store reference for toggling
+            trigger.explanationOverlay = overlay;
+            trigger.showByDefault = showByDefault;
 
-            trigger.addEventListener('mouseenter', () => {
-                trigger.style.opacity = '0.8';
-                indicator.style.opacity = '1';
-                showOverlay();
-            });
+            if (!showByDefault) {
+                // Hover to show mode
+                trigger.addEventListener('mouseenter', () => {
+                    trigger.style.opacity = '0.8';
+                    showOverlay();
+                });
 
-            trigger.addEventListener('mouseleave', () => {
-                trigger.style.opacity = '0';
-                indicator.style.opacity = '0';
-                hideOverlay();
-            });
+                trigger.addEventListener('mouseleave', () => {
+                    trigger.style.opacity = '0';
+                    hideOverlay();
+                });
+            } else {
+                // Always show mode - manage z-index on hover
+                trigger.addEventListener('mouseenter', () => {
+                    overlay.style.zIndex = '600';
+                    trigger.style.zIndex = '599';
+                });
 
-            trigger.appendChild(indicator);
+                trigger.addEventListener('mouseleave', () => {
+                    overlay.style.zIndex = '500';
+                    trigger.style.zIndex = '499';
+                });
+            }
+
             wrapper.appendChild(trigger);
             wrapper.appendChild(overlay);
+        }
+    });
+}
+
+// Toggle explanation display mode
+function toggleExplanationMode(showByDefault) {
+    const codeElement = document.getElementById('codeContent');
+    if (!codeElement) return;
+
+    const wrapper = codeElement.closest('div[style*="position: relative"]');
+    if (!wrapper) return;
+
+    const triggers = wrapper.querySelectorAll('div[style*="z-index: 499"]');
+    triggers.forEach(trigger => {
+        const overlay = trigger.explanationOverlay;
+        if (overlay) {
+            // Remove all existing event listeners by cloning elements
+            const newTrigger = trigger.cloneNode(true);
+            const newOverlay = overlay.cloneNode(true);
+
+            // Update references
+            newTrigger.explanationOverlay = newOverlay;
+
+            if (showByDefault) {
+                // Show all overlays
+                newTrigger.style.opacity = '0.8';
+                newOverlay.style.opacity = '1';
+                newOverlay.style.transform = 'translateX(0)';
+                newOverlay.style.visibility = 'visible';
+                newOverlay.style.right = '0px';
+                newOverlay.style.zIndex = '500';
+                newTrigger.style.zIndex = '499';
+
+                // Add z-index management for always show mode
+                newTrigger.addEventListener('mouseenter', () => {
+                    newOverlay.style.zIndex = '600';
+                    newTrigger.style.zIndex = '599';
+                });
+
+                newTrigger.addEventListener('mouseleave', () => {
+                    newOverlay.style.zIndex = '500';
+                    newTrigger.style.zIndex = '499';
+                });
+
+                newOverlay.addEventListener('mouseenter', () => {
+                    newOverlay.style.zIndex = '600';
+                    newTrigger.style.zIndex = '599';
+                });
+
+                newOverlay.addEventListener('mouseleave', () => {
+                    newOverlay.style.zIndex = '500';
+                    newTrigger.style.zIndex = '499';
+                });
+            } else {
+                // Hide all overlays and enable hover to show
+                newTrigger.style.opacity = '0';
+                newOverlay.style.opacity = '0';
+                newOverlay.style.transform = 'translateX(10px)';
+                newOverlay.style.visibility = 'hidden';
+                newOverlay.style.zIndex = '500';
+                newTrigger.style.zIndex = '499';
+
+                // Add hover to show functionality
+                const showOverlay = () => {
+                    newOverlay.style.opacity = '1';
+                    newOverlay.style.transform = 'translateX(0)';
+                    newOverlay.style.visibility = 'visible';
+                    newOverlay.style.right = '0px';
+                    newOverlay.style.zIndex = '600';
+                    newTrigger.style.zIndex = '599';
+                };
+
+                const hideOverlay = () => {
+                    setTimeout(() => {
+                        newOverlay.style.opacity = '0';
+                        newOverlay.style.transform = 'translateX(10px)';
+                        newOverlay.style.zIndex = '500';
+                        newTrigger.style.zIndex = '499';
+                        setTimeout(() => {
+                            newOverlay.style.visibility = 'hidden';
+                        }, 300);
+                    }, 100);
+                };
+
+                newTrigger.addEventListener('mouseenter', () => {
+                    newTrigger.style.opacity = '0.8';
+                    showOverlay();
+                });
+
+                newTrigger.addEventListener('mouseleave', () => {
+                    newTrigger.style.opacity = '0';
+                    hideOverlay();
+                });
+
+                newOverlay.addEventListener('mouseenter', showOverlay);
+                newOverlay.addEventListener('mouseleave', hideOverlay);
+            }
+
+            // Replace old elements with new ones
+            trigger.parentNode.replaceChild(newTrigger, trigger);
+            overlay.parentNode.replaceChild(newOverlay, overlay);
         }
     });
 }
@@ -379,29 +500,6 @@ async function showSimulationFileWithExplanation(filename) {
 
         const content = await response.text();
 
-        // Check for visualization
-        const baseName = filename.replace(/\.[^/.]+$/, '');
-        const visualizationFilename = `${baseName}.png`;
-
-        let visualizationHtml = '';
-        try {
-            const vizResponse = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${visualizationFilename}`);
-            if (vizResponse.ok) {
-                visualizationHtml = `
-                    <div class="visualization-section" style="margin-bottom: 2rem;">
-                        <h4 style="color: #2c3e50; margin-bottom: 1rem;">📊 Visualization</h4>
-                        <div style="text-align: center; background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
-                            <img src="/api/simulation-file/${runType}/${problemFolder}/${visualizationFilename}" 
-                                 alt="Visualization for ${filename}" 
-                                 style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
-                        </div>
-                    </div>
-                `;
-            }
-        } catch (vizError) {
-            // No visualization available
-        }
-
         let contentHtml = '';
 
         if (filename.endsWith('.csv')) {
@@ -429,31 +527,26 @@ async function showSimulationFileWithExplanation(filename) {
             `;
         }
 
-        // Create header with explanation indicator
-        let headerInfo = `Location: ${runType}/${problemFolder}/${filename}`;
-        if (explanationData) {
-            headerInfo += ` • 💡 ${explanationData.snippets ? explanationData.snippets.length : 0} explanations available`;
-        }
 
-        // Display in reading mode viewer
+        // Display in reading mode viewer with sticky header
         readingModeViewer.innerHTML = `
-            <div class="source-info">
-                <div class="source-title">
-                    ${explanationData ? '🐍📖' : '📄'} ${filename}
-                    ${explanationData ? '<span style="color: #3498db; font-size: 0.8em; margin-left: 8px;">Interactive Explanations</span>' : ''}
-                </div>
-                <div style="margin-top: 0.5rem; font-style: italic; color: #666;">
-                    ${headerInfo}
-                </div>
-                ${explanationData ? `
-                    <div style="margin-top: 0.5rem; padding: 8px 12px; background: #e3f2fd; border-radius: 4px; font-size: 0.85rem; color: #1565c0;">
-                        Hover over highlighted code sections to see explanations
-                        ${explanationData.summary ? `<br><strong>Summary:</strong> ${explanationData.summary}` : ''}
+            <div class="source-info" style="position: sticky; top: 0; background: white; z-index: 1001; padding: 1rem; border-bottom: 1px solid #e1e8ed; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="source-title">
+                        ${filename}
                     </div>
-                ` : ''}
+                    ${hasExplanations && explanationData ? `
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 0.9rem; color: #666;">Code Explanations:</span>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="explanationToggle" checked style="margin-right: 5px;">
+                                <span style="font-size: 0.9rem;">Always Show</span>
+                            </label>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
-            <div style="margin-top: 1rem;">
-                ${visualizationHtml}
+            <div style="padding: 1rem;">
                 ${contentHtml}
             </div>
         `;
@@ -465,7 +558,16 @@ async function showSimulationFileWithExplanation(filename) {
             setTimeout(() => {
                 const codeElement = document.getElementById('codeContent');
                 if (codeElement) {
-                    applyCodeExplanations(codeElement, explanationData);
+                    // Apply explanations with default show mode
+                    applyCodeExplanations(codeElement, explanationData, true);
+
+                    // Add toggle functionality
+                    const toggleButton = document.getElementById('explanationToggle');
+                    if (toggleButton) {
+                        toggleButton.addEventListener('change', (e) => {
+                            toggleExplanationMode(e.target.checked);
+                        });
+                    }
                 }
             }, 100);
         }
@@ -487,6 +589,18 @@ async function showSimulationFileWithExplanation(filename) {
 }
 
 // Export functions for global use
-window.isExplanationFile = isExplanationFile;
-window.showSimulationFileWithExplanation = showSimulationFileWithExplanation;
-window.loadExplanationData = loadExplanationData;
+if (typeof window !== 'undefined') {
+    window.codeExplanation = {
+        isExplanationFile,
+        showSimulationFileWithExplanation,
+        loadExplanationData,
+        getExplanationFilename,
+        toggleExplanationMode
+    };
+
+    // Keep backward compatibility for existing functions
+    window.isExplanationFile = isExplanationFile;
+    window.showSimulationFileWithExplanation = showSimulationFileWithExplanation;
+    window.loadExplanationData = loadExplanationData;
+    window.toggleExplanationMode = toggleExplanationMode;
+}
