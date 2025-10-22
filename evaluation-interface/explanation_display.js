@@ -179,7 +179,7 @@ async function displayExplanations(explanations) {
             }
 
             return `
-                            <div class="evidence-item" id="evidence-${index}-${evidenceId}" data-evidence-id="${evidenceId}" data-explanation-index="${index}" onclick="showInJsonPanel([${pathStr}], 'evidence', '${evidenceId}')">
+                            <div class="evidence-item" id="evidence-${index}-${evidenceId}" data-evidence-id="${evidenceId}" data-evidence-type="${evidence.type || 'unknown'}" data-explanation-index="${index}" onclick="showInJsonPanel([${pathStr}], 'evidence', '${evidenceId}')">
                                 <div class="evidence-header">
                                     <span class="evidence-type ${getEvidenceTypeClass(evidence.type)}">${evidence.type || 'Unknown'}</span>
                                 </div>

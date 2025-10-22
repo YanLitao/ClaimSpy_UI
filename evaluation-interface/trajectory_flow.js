@@ -681,25 +681,39 @@ function drawEvidenceConnections(explanationIndex) {
         const evidenceId = evidenceItem.getAttribute('data-evidence-id');
         const explanationIdx = evidenceItem.getAttribute('data-explanation-index');
         const uniqueConnectionId = `${explanationIdx}-${evidenceId}`;
-        const trajectoryMapping = evidenceToTrajectory[evidenceId];
 
-        if (trajectoryMapping && Array.isArray(trajectoryMapping) && trajectoryMapping.length > 0) {
-            // Only connect to the first step, ignore additional steps
-            const stepNumber = trajectoryMapping[0];
+        // Get evidence type from data attribute
+        const evidenceType = evidenceItem.getAttribute('data-evidence-type');
 
-            // Connect to step node only, not to specific observation items
-            const targetElement = document.querySelector(`#step-${stepNumber}`);
+        // Check if evidence type is "reasoning"
+        if (evidenceType === 'reasoning') {
+            // Connect to reasoning node instead of trajectory steps
+            const reasoningNode = document.getElementById('reasoning-node');
+            if (reasoningNode) {
+                drawEvidenceConnectionLine(evidenceItem, reasoningNode, uniqueConnectionId);
+            }
+        } else {
+            // Regular evidence: connect to trajectory steps
+            const trajectoryMapping = evidenceToTrajectory[evidenceId];
 
-            if (targetElement) {
-                drawEvidenceConnectionLine(evidenceItem, targetElement, uniqueConnectionId);
+            if (trajectoryMapping && Array.isArray(trajectoryMapping) && trajectoryMapping.length > 0) {
+                // Only connect to the first step, ignore additional steps
+                const stepNumber = trajectoryMapping[0];
 
-                // Add visual distinction to observation items if mapping has specific indices
-                if (trajectoryMapping.length > 1) {
-                    for (let i = 1; i < trajectoryMapping.length; i++) {
-                        const obsIndex = trajectoryMapping[i];
-                        const obsElement = document.querySelector(`#obs-${stepNumber}-${obsIndex}`);
-                        if (obsElement) {
-                            obsElement.classList.add('highlighted-observation');
+                // Connect to step node only, not to specific observation items
+                const targetElement = document.querySelector(`#step-${stepNumber}`);
+
+                if (targetElement) {
+                    drawEvidenceConnectionLine(evidenceItem, targetElement, uniqueConnectionId);
+
+                    // Add visual distinction to observation items if mapping has specific indices
+                    if (trajectoryMapping.length > 1) {
+                        for (let i = 1; i < trajectoryMapping.length; i++) {
+                            const obsIndex = trajectoryMapping[i];
+                            const obsElement = document.querySelector(`#obs-${stepNumber}-${obsIndex}`);
+                            if (obsElement) {
+                                obsElement.classList.add('highlighted-observation');
+                            }
                         }
                     }
                 }

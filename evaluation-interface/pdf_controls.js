@@ -119,7 +119,9 @@ async function applyAllHighlights(evidenceId, highlightInfo) {
     if (highlightingSuccess) {
         scrollToFirstHighlight(evidenceId);
     }
-} async function applyHighlightsViaPDFJS(evidenceId, highlightInfo) {
+}
+
+async function applyHighlightsViaPDFJS(evidenceId, highlightInfo) {
     const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);
     if (!pdfFrame || !pdfFrame.contentWindow) return;
 
@@ -183,7 +185,9 @@ async function applyAllHighlights(evidenceId, highlightInfo) {
         console.warn('Error in text layer highlighting:', error);
         return false;
     }
-}// Precisely highlight text on specified page
+}
+
+// Precisely highlight text on specified page
 async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId) {
     try {
         // Get page object
@@ -221,6 +225,8 @@ async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId
                 });
             }
         });
+
+        console.log('fullText:', fullText);
 
         // Find matching text
         const searchIndex = fullText.toLowerCase().indexOf(searchText.toLowerCase());
