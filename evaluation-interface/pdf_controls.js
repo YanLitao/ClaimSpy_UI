@@ -183,19 +183,17 @@ async function applyAllHighlights(evidenceId, highlightInfo) {
         console.warn('Error in text layer highlighting:', error);
         return false;
     }
-}// 在指定页面上精确高亮文本
+}// Precisely highlight text on specified page
 async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId) {
     try {
-        // 获取页面对象
+        // Get page object
         const page = await pdfViewer.pdfDocument.getPage(pageNumber);
         const textContent = await page.getTextContent();
-
-        // 提取所有文本内容
+        // Extract all text content
         const textItems = textContent.items;
         let fullText = '';
         let itemPositions = [];
-
-        // 构建完整文本并记录每个字符的位置信息
+        // Build complete text and record position information for each character
         textItems.forEach((item, itemIndex) => {
             const startPos = fullText.length;
             fullText += item.str;
@@ -212,11 +210,11 @@ async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId
                 width: item.width
             });
 
-            // 添加空格分隔（如果需要）
+            // Add space separator (if needed)
             if (itemIndex < textItems.length - 1) {
                 fullText += ' ';
                 itemPositions.push({
-                    itemIndex: -1, // 空格标记
+                    itemIndex: -1, // Space marker
                     startPos: fullText.length - 1,
                     endPos: fullText.length,
                     isSpace: true
@@ -224,23 +222,25 @@ async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId
             }
         });
 
-        // 查找匹配的文本
+        // Find matching text
         const searchIndex = fullText.toLowerCase().indexOf(searchText.toLowerCase());
         if (searchIndex === -1) {
             console.warn(`Text "${searchText}" not found on page ${pageNumber}`);
             return;
         }
 
-        // 找到匹配文本的位置信息
+        // Find position information of matching text
         const matchEndIndex = searchIndex + searchText.length;
         const matchingItems = itemPositions.filter(pos =>
             !pos.isSpace &&
+            pos.str && // Filter out empty strings
+            pos.str.trim() !== '' && // Filter out whitespace-only strings
             pos.startPos < matchEndIndex &&
             pos.endPos > searchIndex
         );
 
         if (matchingItems.length > 0) {
-            // 创建高亮覆盖层
+            // Create highlight overlay
             await createHighlightOverlay(pdfViewer, pageNumber, matchingItems, evidenceId);
         }
 
@@ -294,10 +294,10 @@ function clearHighlights(evidenceId) {
     });
 }
 
-// 创建高亮覆盖层
+// Create highlight overlay
 async function createHighlightOverlay(pdfViewer, pageNumber, textItems, evidenceId) {
     try {
-        // 获取页面容器
+        // Get page container
         const pageView = pdfViewer.pdfViewer.getPageView(pageNumber - 1);
         if (!pageView || !pageView.div) {
             console.warn(`Page view not found for page ${pageNumber}`);
@@ -306,24 +306,23 @@ async function createHighlightOverlay(pdfViewer, pageNumber, textItems, evidence
 
         const pageContainer = pageView.div;
         const viewport = pageView.viewport;
-
-        // 为每个文本项创建高亮矩形
+        // Create highlight rectangle for each text item
         textItems.forEach((item, index) => {
             const transform = item.transform;
             if (!transform || transform.length < 6) return;
 
-            // PDF坐标转换为屏幕坐标
+            // Convert PDF coordinates to screen coordinates
             const x = transform[4];
             const y = transform[5];
-            const width = item.width || 50; // 默认宽度
-            const height = item.height || 12; // 默认高度
+            const width = item.width || 50; // Default width
+            const height = item.height || 12; // Default height
 
-            // 转换坐标系（PDF坐标系Y轴向上，DOM坐标系Y轴向下）
+            // Convert coordinate system (PDF Y-axis points up, DOM Y-axis points down)
             const screenCoords = viewport.convertToViewportPoint(x, y);
             const screenX = screenCoords[0];
-            const screenY = screenCoords[1] - height; // 调整Y坐标
+            const screenY = screenCoords[1] - height; // Adjust Y coordinate
 
-            // 创建高亮元素
+            // Create highlight element
             const highlightDiv = document.createElement('div');
             highlightDiv.className = `custom-highlight-${evidenceId}`;
             highlightDiv.style.cssText = `
@@ -513,10 +512,6 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
         // The file should be accessible via the API server
         // Server expects format: /api/data/{folder}/evidences/{filename}
         const filePath = `/api/data/${problemFolder}/evidences/${evidenceMapping.filename}`;
-        console.log(`Loading evidence file: ${filePath}`);
-
-        // Log the file path for debugging - PDF.js will handle the actual loading
-        console.log(`📄 Preparing to load PDF: ${filePath}`);
 
         // Determine if it's a PDF file for enhanced features
         const isPDF = evidenceMapping.filename.toLowerCase().endsWith('.pdf');

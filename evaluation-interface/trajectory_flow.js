@@ -422,9 +422,6 @@ function drawFlowArrows() {
     // Clear existing arrows
     svg.innerHTML = '';
 
-    // No need for marker definitions anymore - using manual triangles
-    console.log('Using manual triangles instead of SVG markers');
-
     const trajectory = flowTrajectoryData.trajectory || flowTrajectoryData;
     const stepDependencies = flowMappingData.step_dependencies || {};
     const steps = extractStepsFromTrajectory(trajectory);
@@ -476,7 +473,6 @@ function drawFlowArrows() {
 
 // Draw a single arrow between two steps
 function drawArrow(svg, fromStep, toStep, resultIndex) {
-    console.log(`=== drawArrow called: ${fromStep} -> ${toStep}, resultIndex: ${resultIndex} ===`);
 
     let fromElement, toElement;
 
@@ -573,15 +569,6 @@ function drawArrow(svg, fromStep, toStep, resultIndex) {
     triangle.setAttribute('stroke', '#007bff');
     triangle.setAttribute('stroke-width', '1');
 
-    // Debug: Log path details
-    console.log('Path created:', {
-        path: path,
-        fromX: fromX, fromY: fromY,
-        toX: toX, toY: toY,
-        pathLength: pathLength,
-        trianglePoints: trianglePoints
-    });
-
     svg.appendChild(pathElement);
     svg.appendChild(triangle);
 }
@@ -620,8 +607,6 @@ function drawArrowToReasoning(svg, fromStep) {
     triangle.setAttribute('stroke', '#007bff');
     triangle.setAttribute('stroke-width', '1');
 
-    console.log('Creating reasoning arrow with path:', path, 'triangle at:', trianglePoints);
-
     svg.appendChild(pathElement);
     svg.appendChild(triangle);
 }
@@ -659,8 +644,6 @@ function drawArrowFromReasoningToAnswer(svg) {
     triangle.setAttribute('fill', '#007bff');
     triangle.setAttribute('stroke', '#007bff');
     triangle.setAttribute('stroke-width', '1');
-
-    console.log('Creating answer arrow with path:', path, 'triangle at:', trianglePoints);
 
     svg.appendChild(pathElement);
     svg.appendChild(triangle);
@@ -996,8 +979,6 @@ function scrollToRelevantPositions(explanationIndex) {
                 const viewportTop = evidenceRect.top;
                 const centerOffset = window.innerHeight / 2 - evidenceRect.height / 2;
                 const scrollTop = window.scrollY + viewportTop - centerOffset;
-
-                console.log('Scrolling window to:', Math.max(0, scrollTop));
 
                 window.scrollTo({
                     top: Math.max(0, scrollTop),

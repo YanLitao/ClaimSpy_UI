@@ -67,7 +67,7 @@ async function displayExplanations(explanations) {
             <div class="explanation-header">
                 <div class="explanation-text clickable-element" onclick="showInJsonPanel([${pathStr}], 'explanation', ${index})">${explanation.text}</div>
                 <div class="explanation-actions">
-                    ${hasEvidence ? `<button class="btn" onclick="toggleEvidenceSection(${index})" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; line-height: 1.3;">
+                    ${hasEvidence ? `<button class="btn evidence-toggle-btn" onclick="toggleEvidenceSection(${index})" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; line-height: 1.3; min-width: 185px; width: auto;">
                         <div>${validEvidence.length} evidence:</div>
                         ${typesHTML ? `<div style="margin-top: 2px;">${typesHTML}</div>` : ''}
                     </button>` : ''}
@@ -194,7 +194,6 @@ async function displayExplanations(explanations) {
                                             <line x1="16" y1="17" x2="8" y2="17"></line>
                                             <polyline points="10,9 9,9 8,9"></polyline>
                                         </svg>
-                                        📄
                                     </button>
                                     ` : ''}
                                 </div>

@@ -112,18 +112,15 @@ async function loadSelectedFolder() {
         // Set global variables
         if (trajectoryDataResult) {
             trajectoryData = trajectoryDataResult;
-            console.log('Trajectory data loaded successfully');
         }
 
         if (mappingDataResult) {
             mappingData = mappingDataResult;
-            console.log('Mapping data loaded successfully');
         }
 
         // Load data into trajectory flow module
         if (window.trajectoryFlow && trajectoryDataResult && mappingDataResult) {
             window.trajectoryFlow.loadData(trajectoryDataResult, mappingDataResult);
-            console.log('Trajectory flow data loaded');
         }
 
         // Load assessment data (this will trigger the UI update)
@@ -174,12 +171,10 @@ function getProblemClaimForFolder(folderName) {
 async function loadJSONFromAPI(folder, filename) {
     try {
         const apiUrl = `/api/data/${folder}/${filename}`;
-        console.log(`Loading ${filename} from ${folder}...`);
 
         const response = await fetch(apiUrl);
         if (response.ok) {
             const data = await response.json();
-            console.log(`✅ Successfully loaded ${filename} from ${folder}`);
             return data;
         } else if (response.status === 404) {
             console.log(`File not found: ${filename} in ${folder}`);
@@ -195,13 +190,10 @@ async function loadJSONFromAPI(folder, filename) {
         if (folder === 'alloys_0003') {
             try {
                 if (filename === 'assessment.json') {
-                    console.log('🎭 Using demo assessment data');
                     return getSampleAssessmentData();
                 } else if (filename === 'trajectory.json') {
-                    console.log('🎭 Using demo trajectory data');
                     return getSampleTrajectoryData();
                 } else if (filename === 'mapping.json') {
-                    console.log('🎭 Using demo mapping data');
                     return getSampleMappingData();
                 }
             } catch (fallbackError) {
@@ -258,7 +250,6 @@ async function loadAssessmentData(data) {
             }
         }
         else {
-            console.log('Data structure:', Object.keys(data));
             throw new Error('Unsupported JSON format. Please ensure your file contains:\n' +
                 '• Direct assessment format: {type: "assessment", explanation: [...], evidence: {...}}\n' +
                 '• Nested format: {solution: {assessment: {...}}}\n' +
@@ -395,7 +386,6 @@ function displayClaimCard(assessment) {
 
     // If no claim card found, hide the section
     if (!claimCardEvidence) {
-        console.log('No claim card found in assessment evidence');
         claimCardSection.style.display = 'none';
         return;
     }
@@ -494,12 +484,6 @@ function displaySystemScores(assessment) {
             </div>
             <div class="score-label">Feasibility Score</div>
         </div>
-        <div class="score-item clickable-element" onclick="showInJsonPanel([${pathStr}], 'continuous_score')">
-            <div class="score-value">
-                ${assessment.continuous_score !== undefined && assessment.continuous_score !== null ? assessment.continuous_score.toFixed(2) : 'N/A'}
-            </div>
-            <div class="score-label">Continuous Score</div>
-        </div>
         <div class="score-item clickable-element" onclick="showInJsonPanel([${pathStr}], 'confidence')">
             <div class="score-value">
                 ${assessment.confidence !== undefined && assessment.confidence !== null ? assessment.confidence.toFixed(2) : 'N/A'}
@@ -585,7 +569,6 @@ function showTrajectoryFlow(explanationIndex = null) {
 
         // If trajectory was just shown (not hidden), expand evidence section
         if (!isCurrentlyVisible && explanationIndex !== null) {
-            console.log(`Expanding evidence section for explanation ${explanationIndex}`);
             const evidenceSection = document.getElementById(`evidenceSection${explanationIndex}`);
             if (evidenceSection && !evidenceSection.classList.contains('expanded')) {
                 toggleEvidenceSection(explanationIndex);
@@ -686,11 +669,6 @@ function formatJsonForHighlight(obj, path = [], depth = 0) {
     const indent = '  '.repeat(depth);
     const pathStr = path.join('.');
 
-    // Debug logging for key paths
-    if (depth < 3 && (pathStr.includes('explanation') || pathStr.includes('evidence'))) {
-        console.log(`Creating data-path: "${pathStr}" for:`, typeof obj === 'object' ? Object.keys(obj).slice(0, 3) : obj);
-    }
-
     if (typeof obj !== 'object' || obj === null) {
         if (typeof obj === 'string' && obj.length > 100) {
             // Truncate long strings but keep them searchable
@@ -767,7 +745,6 @@ function showInJsonPanel(basePath, targetKey, index = null) {
     // Ensure JSON viewer is populated
     const jsonViewer = document.getElementById('fullJsonViewer');
     if (!jsonViewer || jsonViewer.innerHTML.trim().length === 0) {
-        console.log('JSON viewer not ready, refreshing...');
         const container = document.getElementById('jsonContent');
         if (container) {
             container.innerHTML = `
@@ -845,23 +822,13 @@ function showInJsonPanel(basePath, targetKey, index = null) {
                 targetElement.classList.remove('json-highlight');
             }, 3000);
         } else {
-            console.log('Target element not found for:', targetKey, index, 'Searched paths:', searchPaths);
 
             // Comprehensive debug info
             const allElements = document.querySelectorAll('[data-path]');
             const allPaths = Array.from(allElements).map(el => el.getAttribute('data-path'));
             const jsonViewer = document.getElementById('fullJsonViewer');
-
-            console.log('Total elements with data-path:', allElements.length);
-            console.log('JSON viewer exists:', !!jsonViewer);
-            console.log('JSON viewer innerHTML length:', jsonViewer ? jsonViewer.innerHTML.length : 0);
-
-            // Show sample of available paths
-            console.log('Sample available paths:', allPaths.slice(0, 10));
-
             // Show filtered paths
             const filteredPaths = allPaths.filter(path => path && (path.includes(targetKey) || (index && path.includes(index.toString()))));
-            console.log('Filtered paths:', filteredPaths);
 
             // If no exact matches, show paths that might be related
             if (filteredPaths.length === 0) {
@@ -872,7 +839,6 @@ function showInJsonPanel(basePath, targetKey, index = null) {
                     const indexStr = index ? index.toString().toLowerCase() : '';
                     return pathLower.includes(targetLower) || (indexStr && pathLower.includes(indexStr));
                 });
-                console.log('Related paths (case-insensitive):', relatedPaths);
             }
         }
     }, 500); // Wait longer for panel to expand and DOM to be ready
@@ -885,21 +851,16 @@ function closeLeftPanel() {
         leftPanel.classList.remove('expanded');
         // Clear any inline width style that may have been set during resizing
         leftPanel.style.width = '';
-        console.log('Left panel closed');
     }
 }
 
 // Close right panel
 function closeRightPanel() {
-    console.log('closeRightPanel called');
     const rightPanel = document.getElementById('rightPanel');
     if (rightPanel) {
-        console.log('Current rightPanel classes:', rightPanel.className);
         rightPanel.classList.remove('expanded');
         // Clear any inline width style that may have been set during resizing
         rightPanel.style.width = '';
-        console.log('Right panel closed, new classes:', rightPanel.className);
-
         // Clear evidence highlighting when panel is closed
         document.querySelectorAll('.evidence-item.active').forEach(item => {
             item.classList.remove('active');
@@ -913,8 +874,6 @@ function closeRightPanel() {
         if (readingModeViewer) readingModeViewer.style.display = 'none';
         if (webpageViewer) webpageViewer.style.display = 'none';
         if (welcomeMessage) welcomeMessage.style.display = 'block';
-    } else {
-        console.log('rightPanel element not found');
     }
 }
 

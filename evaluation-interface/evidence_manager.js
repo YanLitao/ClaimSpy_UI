@@ -175,7 +175,7 @@ async function displayLocalPDF(evidenceMapping, evidenceId) {
 
         readingModeViewer.innerHTML = `
             <div class="pdf-viewer-container">
-                <h4>📄 ${evidenceMapping.filename}</h4>
+                <h4>${evidenceMapping.filename}</h4>
                 <embed src="${pdfPath}" type="application/pdf" width="100%" height="600px" />
             </div>
         `;
