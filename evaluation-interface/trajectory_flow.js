@@ -7,6 +7,22 @@ let isTrajectoryFlowVisible = false;
 let firstLoad = true;
 let firstNodeX = -1;
 
+// Common text formatting function
+function formatText(text) {
+    if (typeof text !== 'string') return '';
+    return text.trim()
+        // Bold for **text**
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        // Bold for ##text or ###text
+        .replace(/###?(.*?)$/gm, '<b>$1</b>')
+        // Convert "- text" at start of line to bullet point
+        .replace(/^- (.*)$/gm, '• $1')
+        // Normalize spaces and <br>
+        .replace(/\s+/g, ' ')
+        .replace(/<br>\s+/g, '<br>')
+        .replace(/\s+<br>/g, '<br>');
+}
+
 // Initialize trajectory flow system
 function initTrajectoryFlow() {
     // This will be called when the page loads to set up event listeners
@@ -194,20 +210,6 @@ function generateStepNodeHTML(step, index, stepDependencies) {
 
     // Collapsible thoughts display
     if (step.thought) {
-        // Format thought text: trim whitespace and convert **text**, ##text, ###text to bold, and - text to bullet
-        const formatThought = (text) => {
-            return text.trim()
-                // Bold for **text**
-                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-                // Bold for ##text or ###text
-                .replace(/###?(.*?)$/gm, '<b>$1</b>')
-                // Convert "- text" at start of line to bullet point
-                .replace(/^- (.*)$/gm, '• $1')
-                // Normalize spaces and <br>
-                .replace(/\s+/g, ' ')
-                .replace(/<br>\s+/g, '<br>')
-                .replace(/\s+<br>/g, '<br>');
-        };
 
         // Create 3-line summary (approximately 150 characters)
         const thoughtLines = step.thought.trim().split('\n').filter(line => line.trim());
@@ -222,14 +224,14 @@ function generateStepNodeHTML(step, index, stepDependencies) {
 
         html += `
             <div class="step-content thought-content">
-                <span class="content-icon">💭</span>
+                <span class="content-icon">•</span>
                 <div class="thought-container">
                     <div class="thought-summary" id="thought-summary-${stepNum}">
-                        ${formatThought(thoughtSummary)}
+                        ${formatText(thoughtSummary)}
                     </div>
                     ${needsExpansion ? `
                         <div class="thought-full" id="thought-full-${stepNum}" style="display: none;">
-                            ${formatThought(step.thought)}
+                            ${formatText(step.thought)}
                         </div>
                         <button class="thought-toggle-btn" onclick="toggleThought(${stepNum})" id="thought-toggle-${stepNum}">
                             Show More
@@ -241,10 +243,14 @@ function generateStepNodeHTML(step, index, stepDependencies) {
     }
 
     if (step.toolName) {
+        const toolDisplayText = step.toolName.toLowerCase() === 'finish' ?
+            escapeHtml(step.toolName) :
+            `Tool: ${escapeHtml(step.toolName)}`;
+
         html += `
             <div class="step-content tool-content">
-                <span class="content-icon">🔧</span>
-                <span class="content-text">${escapeHtml(step.toolName)}</span>
+                <span class="content-icon">•</span>
+                <span class="content-text">${toolDisplayText}</span>
             </div>
         `;
     }
@@ -254,7 +260,7 @@ function generateStepNodeHTML(step, index, stepDependencies) {
             // Show individual observation items as small boxes
             html += `
                 <div class="step-content obs-content">
-                    <span class="content-icon">👁️</span>
+                    <span class="content-icon">•</span>
                     <span class="content-text">Observations:</span>
                 </div>
                 <div class="observation-items">
@@ -372,7 +378,7 @@ function generateReasoningNodeHTML(stepCount) {
             <div class="step-header">Final Reasoning</div>
             <div class="step-content reasoning-content">
                 <span class="content-text" title="${escapeHtml(reasoning || '')}">
-                    ${escapeHtml(reasoningPreview || 'No reasoning available')}
+                    ${formatText(reasoningPreview || 'No reasoning available')}
                 </span>
             </div>
         </div>
@@ -391,7 +397,7 @@ function generateAnswerNodeHTML(stepCount) {
             <div class="step-header">Final Answer</div>
             <div class="step-content answer-content">
                 <span class="content-text" title="${escapeHtml(answer || '')}">
-                    ${escapeHtml(answerPreview || 'No answer available')}
+                    ${formatText(answerPreview || 'No answer available')}
                 </span>
             </div>
         </div>
@@ -426,21 +432,34 @@ function drawFlowArrows() {
     const stepDependencies = flowMappingData.step_dependencies || {};
     const steps = extractStepsFromTrajectory(trajectory);
 
-    // Set SVG dimensions - calculate total height needed
+    // Set SVG dimensions - calculate total height needed based on actual content
     const container = svg.parentElement;
+    const flowDiagram = container.querySelector('.flow-diagram');
+
+    // Calculate actual content height by finding the bottom-most element
+    let actualHeight = 100; // Base padding
+    const allNodes = container.querySelectorAll('.step-node, .reasoning-node, .answer-node');
+    allNodes.forEach(node => {
+        const nodeTop = parseInt(node.style.top) || node.offsetTop;
+        const nodeHeight = node.offsetHeight;
+        const nodeBottom = nodeTop + nodeHeight;
+        actualHeight = Math.max(actualHeight, nodeBottom + 50); // Add some bottom padding
+    });
+
+    // Ensure minimum height for traditional calculation as fallback
     const totalSteps = steps.length;
     const reasoning = flowTrajectoryData.reasoning || (flowTrajectoryData.trajectory && flowTrajectoryData.trajectory.reasoning);
     const answer = flowTrajectoryData.answer || (flowTrajectoryData.trajectory && flowTrajectoryData.trajectory.answer);
     const extraNodes = (reasoning ? 1 : 0) + (answer ? 1 : 0);
-    const minHeight = (totalSteps + extraNodes) * 400 + 100; // Add padding
+    const minHeight = Math.max(actualHeight, (totalSteps + extraNodes) * 200 + 200);
 
     svg.setAttribute('width', container.offsetWidth);
-    svg.setAttribute('height', Math.max(container.offsetHeight, minHeight));
+    svg.setAttribute('height', minHeight);
 
     // Also set the flow diagram container height
-    const flowDiagram = container.querySelector('.flow-diagram');
     if (flowDiagram) {
         flowDiagram.style.minHeight = minHeight + 'px';
+        flowDiagram.style.height = minHeight + 'px';
     }
 
     // Ensure SVG is properly positioned and sized
@@ -536,7 +555,6 @@ function drawArrow(svg, fromStep, toStep, resultIndex) {
     // Create curved path for vertical flow
     let path;
     let midX; // Declare midX outside the condition
-
 
     // Straight vertical path from step bottom to next step top
     midX = (fromX + toX) / 2; // Set midX for vertical paths too
@@ -1118,6 +1136,8 @@ function recalculateNodePositions() {
     const answerNode = document.querySelector('.answer-node');
     if (answerNode) {
         answerNode.style.top = currentY + 'px';
+        answerNode.offsetHeight; // Force reflow
+        currentY += answerNode.offsetHeight + 30;
     }
 
     // Update the container height to accommodate all nodes
@@ -1125,6 +1145,7 @@ function recalculateNodePositions() {
     if (flowDiagram) {
         const totalHeight = currentY + 100; // Add some padding
         flowDiagram.style.minHeight = totalHeight + 'px';
+        flowDiagram.style.height = totalHeight + 'px';
 
         // Update SVG height as well
         const svg = document.getElementById('flowArrows');

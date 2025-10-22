@@ -1484,6 +1484,7 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
     z-index: 3;
+    color: black;
 }
 
 .step-node:hover,
@@ -1491,14 +1492,6 @@ body {
 .answer-node:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transform: translateX(-50%) translateY(-2px);
-}
-
-.reasoning-node {
-    border-left: 4px solid #6f42c1;
-}
-
-.answer-node {
-    border-left: 4px solid #28a745;
 }
 
 .step-header {
@@ -1541,21 +1534,12 @@ body {
 
 .tool-content .content-text {
     color: #28a745;
-    font-family: 'Courier New', monospace;
     font-weight: bold;
 }
 
 .obs-content .content-text {
     color: #ffc107;
-    font-style: italic;
-}
-
-.reasoning-content .content-text {
-    color: #6f42c1;
-}
-
-.answer-content .content-text {
-    color: #28a745;
+    font-weight: bold;
 }
 
 .observation-items {
@@ -1569,8 +1553,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    background: #fff3cd;
-    border: 1px solid #ffc107;
+    border: 0.5px solid lightgray;
     border-radius: 4px;
     padding: 0.25rem 0.5rem;
     font-size: 0.7rem;
@@ -1579,16 +1562,7 @@ body {
     width: 100%;
 }
 
-.obs-item-box:hover {
-    background: #fff3cd;
-    border-color: #ffcd39;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
-}
-
 .obs-item-index {
-    background: #ffc107;
-    color: #212529;
     padding: 0.1rem 0.3rem;
     border-radius: 2px;
     font-weight: bold;
@@ -1597,7 +1571,6 @@ body {
 }
 
 .obs-item-text {
-    color: #856404;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
