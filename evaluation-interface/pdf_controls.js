@@ -326,7 +326,7 @@ async function createHighlightOverlay(pdfViewer, pageNumber, textItems, evidence
             // Convert coordinate system (PDF Y-axis points up, DOM Y-axis points down)
             const screenCoords = viewport.convertToViewportPoint(x, y);
             const screenX = screenCoords[0];
-            const screenY = screenCoords[1] - height; // Adjust Y coordinate
+            const screenY = screenCoords[1] - height - 5; // Adjust Y coordinate and move down 7px
 
             // Create highlight element
             const highlightDiv = document.createElement('div');
@@ -334,7 +334,7 @@ async function createHighlightOverlay(pdfViewer, pageNumber, textItems, evidence
             highlightDiv.style.cssText = `
                 position: absolute;
                 left: ${screenX}px;
-                top: ${screenY - 10}px;
+                top: ${screenY}px;
                 width: ${width * viewport.scale}px;
                 height: ${height * viewport.scale}px;
                 background-color: rgba(255, 255, 0, 0.3);
@@ -548,7 +548,7 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                 </div>
                 <div class="pdf-content" id="pdfContent_${evidenceId}">
                     ${isPDF ?
-                `<iframe src="/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}#page=${highlightPage}&zoom=200" 
+                `<iframe src="/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}#page=${highlightPage}&zoom=140" 
                         id="pdfFrame_${evidenceId}" 
                         width="100%" 
                         height="600px" 
@@ -571,7 +571,7 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
 
         // Initialize zoom level and setup PDF.js communication
         if (isPDF) {
-            pdfZoomLevels[evidenceId] = 200; // Set to 200% zoom
+            pdfZoomLevels[evidenceId] = 140; // Set to 140% zoom
 
             // Setup PDF.js viewer communication after iframe loads
             const pdfFrame = document.getElementById(`pdfFrame_${evidenceId}`);

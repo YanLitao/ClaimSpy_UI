@@ -169,7 +169,6 @@ body {
 
 /* Reading Mode Styles */
 .reading-mode {
-    padding: 2rem;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 1rem;
     line-height: 1.6;
@@ -329,13 +328,7 @@ body {
 
 /* Claim Card Section */
 .claim-card-section {
-    background: white;
-    border-left: 4px solid #4caf50;
-    padding: 1rem;
     margin-bottom: 1rem;
-    border-radius: 4px;
-    border: 1px solid #e9ecef;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .claim-card-section h3 {
@@ -349,23 +342,18 @@ body {
     width: 100%;
     border-collapse: collapse;
     background: white;
-    border-radius: 6px;
     overflow: hidden;
-    border: 1px solid #e0e0e0;
 }
 
 .claim-card-table th {
     background: #f8f9fa;
-    color: #2e7d32;
-    font-weight: 600;
-    padding: 0.75rem;
+    padding: 0.5rem;
     text-align: left;
-    border-bottom: 2px solid #e0e0e0;
     font-size: 0.9rem;
 }
 
 .claim-card-table td {
-    padding: 0.75rem;
+    padding: 0.5rem;
     border-bottom: 1px solid #f0f0f0;
     color: #333;
     font-size: 0.9rem;
@@ -425,6 +413,7 @@ body {
 .explanation-item {
     background: white;
     overflow: hidden;
+    margin-bottom: 1rem;
 }
 
 .explanation-header {
@@ -505,10 +494,8 @@ body {
 }
 
 .evidence-section {
-    margin-top: 1rem;
-    border-top: 1px solid #e9ecef;
     padding-top: 1rem;
-    padding-left: 3rem;
+    padding-left: 1rem;
     display: none;
 }
 
@@ -755,11 +742,6 @@ body {
 
 /* Evidence Panel */
 .evidence-item {
-    background: #f9f9f9;
-    border: 1px solid #e9ecef;
-    border-radius: 6px;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -902,10 +884,6 @@ body {
 
 /* Simulation Files Styles */
 .simulation-files-section {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    padding: 0.75rem;
     margin-top: 0.5rem;
 }
 
@@ -1032,9 +1010,7 @@ body {
 }
 
 .pdf-header {
-    background: #f8f9fa;
     padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
     flex-shrink: 0;
 }
 
@@ -1511,6 +1487,12 @@ body {
     margin-bottom: 0.5rem;
     font-size: 0.75rem;
     line-height: 1.3;
+}
+
+.step-content.thought-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
 }
 
 .step-content:last-child {

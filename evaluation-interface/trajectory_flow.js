@@ -11,13 +11,17 @@ let firstNodeX = -1;
 function formatText(text) {
     if (typeof text !== 'string') return '';
     return text.trim()
+        // Convert \n to actual line breaks
+        .replace(/\\n/g, '\n')
+        // Convert line breaks to <br> tags
+        .replace(/\n/g, '<br>')
         // Bold for **text**
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         // Bold for ##text or ###text
         .replace(/###?(.*?)$/gm, '<b>$1</b>')
         // Convert "- text" at start of line to bullet point
         .replace(/^- (.*)$/gm, '• $1')
-        // Normalize spaces and <br>
+        // Clean up extra spaces but preserve <br> tags
         .replace(/\s+/g, ' ')
         .replace(/<br>\s+/g, '<br>')
         .replace(/\s+<br>/g, '<br>');
@@ -224,7 +228,7 @@ function generateStepNodeHTML(step, index, stepDependencies) {
 
         html += `
             <div class="step-content thought-content">
-                <span class="content-icon">•</span>
+                <span class="content-icon">Thought:</span>
                 <div class="thought-container">
                     <div class="thought-summary" id="thought-summary-${stepNum}">
                         ${formatText(thoughtSummary)}
@@ -245,11 +249,11 @@ function generateStepNodeHTML(step, index, stepDependencies) {
     if (step.toolName) {
         const toolDisplayText = step.toolName.toLowerCase() === 'finish' ?
             escapeHtml(step.toolName) :
-            `Tool: ${escapeHtml(step.toolName)}`;
+            `${escapeHtml(step.toolName)}`;
 
         html += `
             <div class="step-content tool-content">
-                <span class="content-icon">•</span>
+                <span class="content-icon">Tool: </span>
                 <span class="content-text">${toolDisplayText}</span>
             </div>
         `;
@@ -260,8 +264,8 @@ function generateStepNodeHTML(step, index, stepDependencies) {
             // Show individual observation items as small boxes
             html += `
                 <div class="step-content obs-content">
-                    <span class="content-icon">•</span>
-                    <span class="content-text">Observations:</span>
+                    <span class="content-icon">Findings: </span>
+                    <span class="content-text"></span>
                 </div>
                 <div class="observation-items">
             `;
@@ -281,9 +285,12 @@ function generateStepNodeHTML(step, index, stepDependencies) {
 
                 html += `
                     <div class="obs-item-box" id="obs-${stepNum}-${itemIndex}" data-step="${stepNum}" data-index="${itemIndex}" 
-                         title="${escapeHtml(isSearchResult ? item.citation : JSON.stringify(item))}">
+                         title="${escapeHtml(isSearchResult ? item.citation : JSON.stringify(item))}" onclick="toggleObsItem(${stepNum}, ${itemIndex})">
                         <span class="obs-item-index">${itemIndex}</span>
-                        <span class="obs-item-text">${escapeHtml(itemPreview)}</span>
+                        <div class="obs-item-content" style="cursor: pointer;">
+                            <div class="obs-item-text obs-item-summary" id="obs-summary-${stepNum}-${itemIndex}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(itemPreview)}</div>
+                            <div class="obs-item-text obs-item-full" id="obs-full-${stepNum}-${itemIndex}" style="display: none; white-space: pre-wrap; word-wrap: break-word; line-height: 1.4;">${escapeHtml(isSearchResult ? item.citation : JSON.stringify(item))}</div>
+                        </div>
                     </div>
                 `;
             });
@@ -366,39 +373,77 @@ function generateObservationHTML(observation, stepNum) {
     return html;
 }
 
-// Generate HTML for reasoning node
-function generateReasoningNodeHTML(stepCount) {
-    const reasoning = flowTrajectoryData.reasoning || (flowTrajectoryData.trajectory && flowTrajectoryData.trajectory.reasoning);
-    const reasoningPreview = reasoning && reasoning.length > 80 ?
-        reasoning.substring(0, 80) + '...' : reasoning;
-    const yPosition = stepCount * 400; // Updated to match step spacing
 
-    return `
-        <div class="reasoning-node" id="reasoning-node" style="top: ${yPosition}px;">
-            <div class="step-header">Final Reasoning</div>
-            <div class="step-content reasoning-content">
-                <span class="content-text" title="${escapeHtml(reasoning || '')}">
-                    ${formatText(reasoningPreview || 'No reasoning available')}
-                </span>
-            </div>
-        </div>
-    `;
-}
 
 // Generate HTML for answer node
 function generateAnswerNodeHTML(stepCount) {
     const answer = flowTrajectoryData.answer || (flowTrajectoryData.trajectory && flowTrajectoryData.trajectory.answer);
-    const answerPreview = answer && answer.length > 80 ?
-        answer.substring(0, 80) + '...' : answer;
-    const yPosition = stepCount * 400; // Updated to match step spacing
+    return generateExpandableContentNodeHTML({
+        nodeType: 'answer',
+        nodeId: 'answer-node',
+        title: 'Final Answer',
+        content: answer || 'No answer available',
+        yPosition: stepCount * 400,
+        toggleFunction: 'toggleAnswer'
+    });
+}
+
+// Generate HTML for reasoning node
+function generateReasoningNodeHTML(stepCount) {
+    const reasoning = flowTrajectoryData.reasoning || (flowTrajectoryData.trajectory && flowTrajectoryData.trajectory.reasoning);
+    return generateExpandableContentNodeHTML({
+        nodeType: 'reasoning',
+        nodeId: 'reasoning-node',
+        title: 'Final Reasoning',
+        content: reasoning || 'No reasoning available',
+        yPosition: stepCount * 400,
+        toggleFunction: 'toggleReasoning'
+    });
+}
+
+// Generic function to generate expandable content nodes (reasoning, answer, etc.)
+function generateExpandableContentNodeHTML(config) {
+    const { nodeType, nodeId, title, content, yPosition, toggleFunction } = config;
+
+    if (!content || content === 'No reasoning available' || content === 'No answer available') {
+        return `
+            <div class="${nodeType}-node" id="${nodeId}" style="top: ${yPosition}px;">
+                <div class="step-header">${title}</div>
+                <div class="step-content ${nodeType}-content">
+                    <span class="content-text">${content}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Create summary (approximately 150 characters)
+    const contentLines = content.trim().split('\n').filter(line => line.trim());
+    let contentSummary = contentLines.slice(0, 3).join('\n').trim();
+    if (contentSummary.length > 150) {
+        contentSummary = contentSummary.substring(0, 150) + '...';
+    } else if (contentLines.length > 3) {
+        contentSummary += '...';
+    }
+
+    const needsExpansion = content.trim().length > 150 || contentLines.length > 3;
 
     return `
-        <div class="answer-node" id="answer-node" style="top: ${yPosition}px;">
-            <div class="step-header">Final Answer</div>
-            <div class="step-content answer-content">
-                <span class="content-text" title="${escapeHtml(answer || '')}">
-                    ${formatText(answerPreview || 'No answer available')}
-                </span>
+        <div class="${nodeType}-node" id="${nodeId}" style="top: ${yPosition}px;">
+            <div class="step-header">${title}</div>
+            <div class="step-content ${nodeType}-content">
+                <div class="${nodeType}-container">
+                    <div class="${nodeType}-summary" id="${nodeType}-summary">
+                        ${formatText(contentSummary)}
+                    </div>
+                    ${needsExpansion ? `
+                        <div class="${nodeType}-full" id="${nodeType}-full" style="display: none;">
+                            ${formatText(content)}
+                        </div>
+                        <button class="thought-toggle-btn" onclick="${toggleFunction}()" id="${nodeType}-toggle">
+                            Show More
+                        </button>
+                    ` : ''}
+                </div>
             </div>
         </div>
     `;
@@ -823,7 +868,7 @@ function updateEvidenceConnectionPath(evidenceElement, trajectoryElement, pathEl
         const startX = trajectoryRect.right;
         const startY = trajectoryRect.top + trajectoryRect.height / 2 - 100; // Subtract header height
         const endX = evidenceRect.left; // Left edge of evidence item
-        const endY = evidenceRect.top + evidenceRect.height / 2 - 100; // Subtract header height
+        const endY = evidenceRect.top - 87.2; // Subtract header height
 
         // Create right-angle path: horizontal from trajectory, then vertical, then horizontal to evidence
         const midX = startX + (endX - startX) / 2;
@@ -1171,4 +1216,127 @@ function getActiveExplanationIndex() {
         return match ? parseInt(match[1]) : null;
     }
     return null;
+}
+
+// Toggle observation item display between summary and full text
+function toggleObsItem(stepNum, itemIndex) {
+    const summaryEl = document.getElementById(`obs-summary-${stepNum}-${itemIndex}`);
+    const fullEl = document.getElementById(`obs-full-${stepNum}-${itemIndex}`);
+
+    if (!summaryEl || !fullEl) return;
+
+    const isExpanded = fullEl.style.display !== 'none';
+
+    if (isExpanded) {
+        // Collapse - show summary, hide full
+        summaryEl.style.display = 'block';
+        fullEl.style.display = 'none';
+    } else {
+        // Expand - hide summary, show full
+        summaryEl.style.display = 'none';
+        fullEl.style.display = 'block';
+    }
+
+    // Recalculate positions after content change
+    setTimeout(() => {
+        recalculateNodePositions();
+        // Redraw arrows
+        const svg = document.getElementById('flowArrows');
+        if (svg) {
+            svg.innerHTML = '';
+        }
+        drawFlowArrows();
+        // Redraw evidence connections if they exist
+        if (document.querySelector('.evidence-connection-line')) {
+            const activeExplanationIndex = getActiveExplanationIndex();
+            if (activeExplanationIndex !== null) {
+                clearEvidenceConnections();
+                drawEvidenceConnections(activeExplanationIndex);
+            }
+        }
+    }, 50);
+}
+
+// Toggle reasoning display between summary and full text
+function toggleReasoning() {
+    const summaryEl = document.getElementById('reasoning-summary');
+    const fullEl = document.getElementById('reasoning-full');
+    const toggleBtn = document.getElementById('reasoning-toggle');
+
+    if (!summaryEl || !fullEl || !toggleBtn) return;
+
+    const isExpanded = fullEl.style.display !== 'none';
+
+    if (isExpanded) {
+        // Collapse
+        summaryEl.style.display = 'block';
+        fullEl.style.display = 'none';
+        toggleBtn.textContent = 'Show More';
+    } else {
+        // Expand
+        summaryEl.style.display = 'none';
+        fullEl.style.display = 'block';
+        toggleBtn.textContent = 'Show Less';
+    }
+
+    // Recalculate positions after a short delay
+    setTimeout(() => {
+        recalculateNodePositions();
+        // Clear and redraw arrows after repositioning
+        const svg = document.getElementById('flowArrows');
+        if (svg) {
+            svg.innerHTML = '';
+        }
+        drawFlowArrows();
+        // Redraw evidence connections if they exist
+        if (document.querySelector('.evidence-connection-line')) {
+            const activeExplanationIndex = getActiveExplanationIndex();
+            if (activeExplanationIndex !== null) {
+                clearEvidenceConnections();
+                drawEvidenceConnections(activeExplanationIndex);
+            }
+        }
+    }, 100);
+}
+
+// Toggle answer display between summary and full text
+function toggleAnswer() {
+    const summaryEl = document.getElementById('answer-summary');
+    const fullEl = document.getElementById('answer-full');
+    const toggleBtn = document.getElementById('answer-toggle');
+
+    if (!summaryEl || !fullEl || !toggleBtn) return;
+
+    const isExpanded = fullEl.style.display !== 'none';
+
+    if (isExpanded) {
+        // Collapse
+        summaryEl.style.display = 'block';
+        fullEl.style.display = 'none';
+        toggleBtn.textContent = 'Show More';
+    } else {
+        // Expand
+        summaryEl.style.display = 'none';
+        fullEl.style.display = 'block';
+        toggleBtn.textContent = 'Show Less';
+    }
+
+    // Recalculate positions after a short delay
+    setTimeout(() => {
+        recalculateNodePositions();
+        // Clear and redraw arrows after repositioning
+        const svg = document.getElementById('flowArrows');
+        if (svg) {
+            svg.innerHTML = '';
+        }
+        drawFlowArrows();
+        // Redraw evidence connections if they exist
+        if (document.querySelector('.evidence-connection-line')) {
+            const activeExplanationIndex = getActiveExplanationIndex();
+            if (activeExplanationIndex !== null) {
+                clearEvidenceConnections();
+                drawEvidenceConnections(activeExplanationIndex);
+            }
+        }
+    }, 100);
 }

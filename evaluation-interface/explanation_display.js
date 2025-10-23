@@ -71,7 +71,7 @@ async function displayExplanations(explanations) {
                         <div>${validEvidence.length} evidence:</div>
                         ${typesHTML ? `<div style="margin-top: 2px;">${typesHTML}</div>` : ''}
                     </button>` : ''}
-                    ${(typeof mappingData !== 'undefined' && mappingData) ? `<button class="btn" onclick="showTrajectoryFlow(${index})">Show Trajectory</button>` : ''}
+                    ${(typeof mappingData !== 'undefined' && mappingData) ? `<button class="btn" onclick="showTrajectoryFlow(${index})">See how I found this</button>` : ''}
                 </div>
             </div>
             <div class="explanation-content" id="explanationContent${index}">
@@ -79,10 +79,6 @@ async function displayExplanations(explanations) {
             </div>
             ${hasEvidence ? `
             <div class="evidence-section" id="evidenceSection${index}">
-                <div class="evidence-header-toggle" onclick="toggleEvidenceSection(${index})">
-                    <h4>${validEvidence.length} evidence:</h4>
-                    <span class="collapse-icon">▼</span>
-                </div>
                 <div id="evidenceContent${index}">
                     ${(explanation.evidence || []).map(evidenceId => {
             const evidence = evidenceData ? evidenceData[evidenceId] : null;
@@ -104,8 +100,18 @@ async function displayExplanations(explanations) {
                         window.simulationManager.formatFileSize :
                         (bytes) => `${bytes} bytes`;
 
+                    // Sort files to put .py files first
+                    const sortedFiles = [...files].sort((a, b) => {
+                        const aIsPython = a.name.toLowerCase().endsWith('.py');
+                        const bIsPython = b.name.toLowerCase().endsWith('.py');
+
+                        if (aIsPython && !bIsPython) return -1;
+                        if (!aIsPython && bIsPython) return 1;
+                        return 0; // Keep original order for files of same type
+                    });
+
                     // Create file boxes (inline display)
-                    const fileBoxesHtml = files.map(file => {
+                    const fileBoxesHtml = sortedFiles.map(file => {
                         const visualizationIndicator = file.hasVisualization ? ' 📊' : '';
                         const tooltipText = file.hasVisualization ?
                             `View ${file.name} with visualization (${formatFileSize(file.size)})` :
@@ -154,7 +160,7 @@ async function displayExplanations(explanations) {
                                 <div style="text-align: center;">
                                     <img src="/api/simulation-file/${runType}/${problemFolder}/${visualizationFile}" 
                                          alt="Visualization for ${filesLabel}"
-                                         style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                         style="max-width: 100%; height: auto;"
                                          onerror="this.style.display='none'">
                                 </div>
                             </div>
@@ -165,7 +171,7 @@ async function displayExplanations(explanations) {
                         <div class="simulation-files-section" id="simFiles${evidenceId}" style="margin-top: 0.5rem;">
                             <div class="simulation-files-header" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Simulation Files:</div>
                             <div class="simulation-files-content" id="simFilesContent${evidenceId}" style="margin-bottom: ${visualizationsHtml ? '1rem' : '0'};">${fileBoxesHtml}</div>
-                            ${visualizationsHtml ? `<div class="visualizations-section" style="border-top: 1px solid #e9ecef; padding-top: 1rem;">${visualizationsHtml}</div>` : ''}
+                            ${visualizationsHtml ? `<div class="visualizations-section">${visualizationsHtml}</div>` : ''}
                         </div>
                     `;
                 } else {
