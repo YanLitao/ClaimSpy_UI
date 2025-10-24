@@ -219,6 +219,11 @@ async function loadJSONFromPath(filePath) {
 async function loadAssessmentData(data) {
     currentData = data;
 
+    // Add trajectory data to currentData if available
+    if (trajectoryData) {
+        currentData.trajectory = trajectoryData.trajectory;
+    }
+
     // Update folder selection indicator
     const folderSelection = document.getElementById('folderSelection');
     if (folderSelection) {
@@ -426,16 +431,21 @@ function displayClaimCard(assessment) {
         'Threshold': 'Threshold'
     };
 
+    // Get explanation from trajectory if available
+    const claimCardExplanation = extractClaimCardExplanation();
+
     // Build table rows
     let tableRows = [];
 
     // Display structured fields
     for (const [field, label] of Object.entries(fieldLabels)) {
         if (parsedClaimCard[field] !== undefined) {
+            const explanation = getFieldExplanation(field, claimCardExplanation);
             tableRows.push(`
                 <tr class="clickable-element" onclick="showInJsonPanel([${pathStr}], 'citation')">
                     <td class="claim-card-field">${label}</td>
                     <td class="claim-card-value">${parsedClaimCard[field]}</td>
+                    <td class="claim-card-explanation">${explanation}</td>
                 </tr>
             `);
         }
@@ -444,10 +454,12 @@ function displayClaimCard(assessment) {
     // Add any additional fields not in the predefined list
     for (const [field, value] of Object.entries(parsedClaimCard)) {
         if (!fieldLabels[field]) {
+            const explanation = getFieldExplanation(field, claimCardExplanation);
             tableRows.push(`
                 <tr class="clickable-element" onclick="showInJsonPanel([${pathStr}], 'citation')">
                     <td class="claim-card-field">${field}</td>
                     <td class="claim-card-value">${value}</td>
+                    <td class="claim-card-explanation">${explanation}</td>
                 </tr>
             `);
         }
@@ -460,6 +472,7 @@ function displayClaimCard(assessment) {
                 <tr>
                     <th>Field</th>
                     <th>Value</th>
+                    <th>Explanation</th>
                 </tr>
             </thead>
             <tbody>
@@ -469,6 +482,113 @@ function displayClaimCard(assessment) {
     `;
 
     claimCardContent.innerHTML = tableHtml;
+}
+
+// Extract claim card explanation from trajectory data
+function extractClaimCardExplanation() {
+    // Check both currentData.trajectory and global trajectoryData
+    let thought0 = null;
+
+    if (currentData && currentData.trajectory && currentData.trajectory.thought_0) {
+        thought0 = currentData.trajectory.thought_0;
+    } else if (trajectoryData && trajectoryData.trajectory && trajectoryData.trajectory.thought_0) {
+        thought0 = trajectoryData.trajectory.thought_0;
+    }
+
+    if (!thought0) {
+        return null;
+    }
+
+    // Extract ClaimCard section using regex
+    const claimCardMatch = thought0.match(/<ClaimCard>([\s\S]*?)<\/ClaimCard>/);
+    if (!claimCardMatch) {
+        return null;
+    }
+
+    const claimCardContent = claimCardMatch[1];
+
+    // Parse each field and its explanation
+    const fieldExplanations = {};
+
+    // Define field mappings from trajectory to assessment
+    const fieldMappings = {
+        'System/entity': 'SystemEntity',
+        'State/phase': 'StatePhase',
+        'Conditions': 'Conditions',
+        'Manipulation': 'Manipulation',
+        'Observable/FoM + units': 'ObservableFoM',
+        'Observable/FoM': 'ObservableFoM',
+        'Units': 'Units',
+        'Quantifier': 'Quantifier',
+        'Threshold': 'Threshold',
+        'Threshold θ': 'Threshold'
+    };
+
+    // Extract field explanations using regex
+    const fieldPattern = /- \*\*([^*]+)\*\*:\s*([^\n]+(?:\n(?!- \*\*)[^\n]*)*)/g;
+    let match;
+
+    while ((match = fieldPattern.exec(claimCardContent)) !== null) {
+        const trajectoryField = match[1].trim();
+        const explanation = match[2].trim();
+
+        // Map to assessment field name
+        const assessmentField = fieldMappings[trajectoryField];
+        if (assessmentField) {
+            fieldExplanations[assessmentField] = explanation;
+        } else {
+            // Also store with original field name for debugging
+            fieldExplanations[trajectoryField] = explanation;
+        }
+    }
+
+    return fieldExplanations;
+}
+
+// Get explanation for a specific field
+function getFieldExplanation(field, explanations) {
+    if (!explanations || !explanations[field]) {
+        return '';
+    }
+
+    // Try direct field match first
+    if (explanations[field]) {
+        return formatExplanationText(explanations[field]);
+    }
+
+    // Try reverse mapping from assessment field to trajectory field
+    const reverseMapping = {
+        'SystemEntity': 'System/entity',
+        'StatePhase': 'State/phase',
+        'Conditions': 'Conditions',
+        'Manipulation': 'Manipulation',
+        'ObservableFoM': 'Observable/FoM + units',
+        'Units': 'Units',
+        'Quantifier': 'Quantifier',
+        'Threshold': 'Threshold θ'
+    };
+
+    const trajectoryField = reverseMapping[field];
+    if (trajectoryField && explanations[trajectoryField]) {
+        return formatExplanationText(explanations[trajectoryField]);
+    }
+
+    // Try alternative patterns for Observable/FoM
+    if (field === 'ObservableFoM') {
+        if (explanations['Observable/FoM']) {
+            return formatExplanationText(explanations['Observable/FoM']);
+        }
+    }
+
+    return '';
+}
+
+// Helper function to format explanation text
+function formatExplanationText(text) {
+    return text
+        .replace(/\*\*/g, '') // Remove bold markers
+        .replace(/^\s+|\s+$/g, '') // Trim whitespace
+        .replace(/\n/g, ' '); // Replace line breaks with spaces
 }
 
 // Display system scores

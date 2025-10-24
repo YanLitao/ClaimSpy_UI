@@ -190,7 +190,7 @@ async function displayExplanations(explanations) {
                                     <span class="evidence-type ${getEvidenceTypeClass(evidence.type)}">${evidence.type || 'Unknown'}</span>
                                 </div>
                                 <div class="evidence-citation-row">
-                                    <div class="evidence-citation">${evidence.citation}</div>
+                                    <div class="evidence-citation">${formatCitationForDisplay(evidence.citation, evidence.type)}</div>
                                     ${evidence.type && evidence.type.toLowerCase() === 'web search' ? `
                                     <button class="local-file-btn" onclick="event.stopPropagation(); viewLocalEvidence('${evidenceId}')" id="localBtn${evidenceId}" title="View local evidence file">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -238,6 +238,36 @@ function markExplanation(index, status) {
 
     // Mark the clicked button
     event.target.classList.add(status);
+}
+
+// Format citation for display - show as compact table for 'other' type evidence
+function formatCitationForDisplay(citation, evidenceType) {
+    if (!citation) return '';
+
+    // For 'other' type evidence, try to parse as JSON and display as compact table
+    if (evidenceType && evidenceType.toLowerCase() === 'other') {
+        try {
+            const parsed = JSON.parse(citation);
+            if (typeof parsed === 'object' && parsed !== null) {
+                // Create compact table
+                const tableRows = Object.entries(parsed)
+                    .map(([key, value]) => {
+                        // Clean up key display
+                        const displayKey = key.replace(/([A-Z])/g, ' $1').trim();
+                        return `<tr><td style="font-weight: 500; padding: 2px 8px 2px 0; vertical-align: top; white-space: nowrap;">${displayKey}:</td><td style="padding: 2px 0; word-break: break-word;">${String(value)}</td></tr>`;
+                    })
+                    .join('');
+
+                return `<table style="font-size: 0.9em; width: 100%; border-collapse: collapse; margin: 0;">${tableRows}</table>`;
+            }
+        } catch (e) {
+            // If parsing fails, fall back to original citation
+            return citation;
+        }
+    }
+
+    // For all other types, return citation as-is
+    return citation;
 }
 
 // Format trajectory text with markdown-like formatting and handle objects

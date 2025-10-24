@@ -17,10 +17,13 @@ function formatText(text) {
         .replace(/\n/g, '<br>')
         // Bold for **text**
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        // Bold for ##text or ###text
-        .replace(/###?(.*?)$/gm, '<b>$1</b>')
+        // Bold for ## or ### headers (only the header line, not everything after)
+        .replace(/^(###?)\s*(.+?)(<br>|$)/gm, '<b>$2</b>$3')
         // Convert "- text" at start of line to bullet point
         .replace(/^- (.*)$/gm, '• $1')
+        // Convert XML-like tags to bold text format, but avoid already processed HTML tags
+        .replace(/<(?!\/?(b|br|i|u|strong|em)\b)([A-Za-z][A-Za-z0-9]*?)>/g, '<b>$2</b>')
+        .replace(/<\/(?!(b|br|i|u|strong|em)\b)([A-Za-z][A-Za-z0-9]*?)>/g, '<b>/$2</b>')
         // Clean up extra spaces but preserve <br> tags
         .replace(/\s+/g, ' ')
         .replace(/<br>\s+/g, '<br>')
