@@ -158,7 +158,7 @@ async function displayExplanations(explanations) {
                             <div class="visualization-item" style="margin-bottom: 1rem;">
                                 <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📊 Visualization for ${filesLabel}</div>
                                 <div style="text-align: center;">
-                                    <img src="/api/simulation-file/${runType}/${problemFolder}/${visualizationFile}" 
+                                    <img src="${window.StaticConfig.getSimulationFileUrl(runType, problemFolder, visualizationFile)}" 
                                          alt="Visualization for ${filesLabel}"
                                          style="max-width: 100%; height: auto;"
                                          onerror="this.style.display='none'">

@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Folder selection handling
 async function loadAvailableFolders() {
     try {
-        const response = await fetch('/api/folders');
+        const response = await fetch(window.StaticConfig.getFoldersUrl());
         if (response.ok) {
             const data = await response.json();
 
@@ -68,10 +68,8 @@ async function loadAvailableFolders() {
         console.error('Error loading available folders:', error);
         // Fallback to simulated data for demo
         const simulatedFolders = [
-            'alloys_0001', 'alloys_0002', 'alloys_0003', 'alloys_0004', 'alloys_0005', 'alloys_0006',
-            'alloys_0007', 'alloys_0008', 'alloys_0009', 'alloys_0010', 'alloys_0011', 'alloys_0012',
-            'batteries_0001', 'batteries_0002', 'batteries_0003', 'batteries_0004',
-            'computational_tools_0001', 'computational_tools_0002', 'computational_tools_0003'
+            'alloys_0001',
+            'computational_tools_0001'
         ];
         availableFolders = simulatedFolders;
         populateFolderDropdown();
@@ -167,10 +165,10 @@ function getProblemClaimForFolder(folderName) {
     };
 }
 
-// Load JSON data from API endpoint
+// Load JSON data from API endpoint or static files
 async function loadJSONFromAPI(folder, filename) {
     try {
-        const apiUrl = `/api/data/${folder}/${filename}`;
+        const apiUrl = window.StaticConfig.getDataUrl(folder, filename);
 
         const response = await fetch(apiUrl);
         if (response.ok) {
@@ -185,34 +183,8 @@ async function loadJSONFromAPI(folder, filename) {
 
     } catch (error) {
         console.error(`Error loading ${filename} from ${folder}:`, error);
-
-        // Fallback to simulated data for demo purposes (only for alloys_0003)
-        if (folder === 'alloys_0003') {
-            try {
-                if (filename === 'assessment.json') {
-                    return getSampleAssessmentData();
-                } else if (filename === 'trajectory.json') {
-                    return getSampleTrajectoryData();
-                } else if (filename === 'mapping.json') {
-                    return getSampleMappingData();
-                }
-            } catch (fallbackError) {
-                console.error(`Fallback data error for ${folder}/${filename}:`, fallbackError);
-            }
-        }
-
         return null;
     }
-}
-
-// Legacy function - kept for compatibility
-async function loadJSONFromPath(filePath) {
-    console.warn('loadJSONFromPath is deprecated, use loadJSONFromAPI instead');
-    // Extract folder and filename from path for compatibility
-    const pathParts = filePath.split('/');
-    const folder = pathParts[pathParts.length - 2];
-    const filename = pathParts[pathParts.length - 1];
-    return loadJSONFromAPI(folder, filename);
 }
 
 // Load assessment data
@@ -847,6 +819,16 @@ function showInJsonPanel(basePath, targetKey, index = null) {
         toggleLeftPanel();
     }
 
+    // Check if trajectory flow is currently visible and hide it
+    if (window.trajectoryFlow && window.trajectoryFlow.isVisible()) {
+        // Hide trajectory flow but keep panel expanded
+        const wasExpanded = leftPanel.classList.contains('expanded');
+        window.trajectoryFlow.hide();
+        if (wasExpanded) {
+            leftPanel.classList.add('expanded');
+        }
+    }
+
     // Switch back to assessment data if we're currently showing trajectory data
     if (window.currentJsonType === 'trajectory') {
         const container = document.getElementById('jsonContent');
@@ -857,6 +839,26 @@ function showInJsonPanel(basePath, targetKey, index = null) {
         `;
     }
 
+    // Ensure we have the correct JSON content structure
+    const container = document.getElementById('jsonContent');
+    if (!container) {
+        console.error('JSON content container not found');
+        return;
+    }
+
+    // Check if we need to restore the proper JSON structure
+    if (!container.querySelector('.json-viewer') ||
+        container.innerHTML.includes('trajectory-flow-container')) {
+        // Restore JSON content structure
+        if (window.fullJsonData) {
+            window.currentJsonData = window.fullJsonData;
+            window.currentJsonType = 'assessment';
+            container.innerHTML = `
+                <div class="json-viewer" id="fullJsonViewer">${formatJsonForHighlight(window.fullJsonData, [])}</div>
+            `;
+        }
+    }
+
     // Clear previous highlights
     document.querySelectorAll('.json-highlight').forEach(el => {
         el.classList.remove('json-highlight');
@@ -864,12 +866,37 @@ function showInJsonPanel(basePath, targetKey, index = null) {
 
     // Ensure JSON viewer is populated
     const jsonViewer = document.getElementById('fullJsonViewer');
-    if (!jsonViewer || jsonViewer.innerHTML.trim().length === 0) {
-        const container = document.getElementById('jsonContent');
-        if (container) {
+
+    // Check if JSON viewer needs to be populated or repopulated
+    const needsPopulation = !jsonViewer ||
+        jsonViewer.innerHTML.trim().length === 0 ||
+        container.innerHTML.includes('Select an item to view details') ||
+        container.innerHTML.includes('Select an assessment to view JSON data');
+
+    if (needsPopulation) {
+        // Ensure we have data to display
+        const dataToDisplay = window.currentJsonData || window.fullJsonData;
+        if (dataToDisplay && container) {
+            // Reset to assessment data if needed
+            if (!window.currentJsonData && window.fullJsonData) {
+                window.currentJsonData = window.fullJsonData;
+                window.currentJsonType = 'assessment';
+            }
+
             container.innerHTML = `
-                <div class="json-viewer" id="fullJsonViewer">${formatJsonForHighlight(window.currentJsonData || window.fullJsonData, [])}</div>
+                <div class="json-viewer" id="fullJsonViewer">${formatJsonForHighlight(dataToDisplay, [])}</div>
             `;
+
+            // Wait a moment for DOM to update before highlighting
+            setTimeout(() => {
+                const updatedJsonViewer = document.getElementById('fullJsonViewer');
+                if (!updatedJsonViewer || updatedJsonViewer.innerHTML.trim().length === 0) {
+                    console.warn('Failed to populate JSON viewer after update');
+                }
+            }, 100);
+        } else {
+            console.warn('No JSON data available to display');
+            return;
         }
     }
 
@@ -971,6 +998,18 @@ function closeLeftPanel() {
         leftPanel.classList.remove('expanded');
         // Clear any inline width style that may have been set during resizing
         leftPanel.style.width = '';
+
+        // Reset JSON content state to assessment data if it was showing trajectory data
+        if (window.currentJsonType === 'trajectory' && window.fullJsonData) {
+            const container = document.getElementById('jsonContent');
+            if (container) {
+                window.currentJsonData = window.fullJsonData;
+                window.currentJsonType = 'assessment';
+                container.innerHTML = `
+                    <div class="json-viewer" id="fullJsonViewer">${formatJsonForHighlight(window.fullJsonData, [])}</div>
+                `;
+            }
+        }
     }
 }
 

@@ -516,8 +516,8 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
         const problemFolder = getProblemFolderFromCurrentFolder();
 
         // The file should be accessible via the API server
-        // Server expects format: /api/data/{folder}/evidences/{filename}
-        const filePath = `/api/data/${problemFolder}/evidences/${evidenceMapping.filename}`;
+        // Use static config for evidence file path
+        const filePath = window.StaticConfig.getEvidenceUrl(problemFolder, evidenceMapping.filename);
 
         // Determine if it's a PDF file for enhanced features
         const isPDF = evidenceMapping.filename.toLowerCase().endsWith('.pdf');

@@ -11,15 +11,14 @@ def explain_python_code():
 
     # 1. List of folder names to analyze
     folders_to_analyze = [
-        "alloys_0003",
+        # "sandbox-dry-run/alloys_0003",
         # Add more folder names here as needed
-        # "alloys_0004",
-        # "alloys_0005",
+        "sandbox-drop4/computational_tools_0001",
     ]
 
     # 2. Base directory path
     SCRIPT_DIR = Path(__file__).parent.absolute()
-    base_dir = SCRIPT_DIR / "sonnet45-full-run-codex-gpt5-1010" / "sandbox-dry-run"
+    base_dir = SCRIPT_DIR / "sonnet45-full-run-codex-gpt5-1010"
 
     # Initialize OpenAI client
     client = OpenAI(api_key=os.environ["OPENAI_TOKEN"])

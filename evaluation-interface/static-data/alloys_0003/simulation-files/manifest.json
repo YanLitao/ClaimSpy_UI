@@ -1,0 +1,42 @@
+{
+  "files": [
+    {
+      "name": "we43_metal_results.csv",
+      "size": 231,
+      "extension": ".csv"
+    },
+    {
+      "name": "we43_metal_results.json",
+      "size": 837,
+      "extension": ".json"
+    },
+    {
+      "name": "we43_metal_results.png",
+      "size": 104365,
+      "extension": ".png"
+    },
+    {
+      "name": "we43_oxide_eq.py",
+      "size": 11564,
+      "extension": ".py"
+    },
+    {
+      "name": "we43_oxide_eq_explanation.json",
+      "size": 25518,
+      "extension": ".json"
+    },
+    {
+      "name": "we43_oxide_results.csv",
+      "size": 34,
+      "extension": ".csv"
+    },
+    {
+      "name": "we43_oxide_results.json",
+      "size": 1137,
+      "extension": ".json"
+    }
+  ],
+  "total_count": 7,
+  "folder": "alloys_0003",
+  "run_type": "dry-run"
+}

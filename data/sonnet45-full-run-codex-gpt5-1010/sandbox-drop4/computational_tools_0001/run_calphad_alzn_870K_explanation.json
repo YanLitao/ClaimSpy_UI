@@ -1,0 +1,119 @@
+{
+    "snippets": [
+        {
+            "code": "#!/usr/bin/env python3\n\"\"\"\nCALPHAD equilibrium calculation for Al–Zn at 870 K, X(AL)=0.20 (at.%).\n\nWorkflow:\n- Load COST507 database from TnETDBDB\n- Select relevant phases from DB (containing AL/ZN)\n- Solve equilibrium at T=870 K, P=1 atm, N=1 mol, X(AL)=0.20\n- Compute phase fractions from NP, threshold for stability at 1e-3\n- Emit results.json and results.csv\n- Print concise human-readable summary\n\nNotes:\n- Follows the one-script, single-run guidance.\n- Uses pycalphad to introspect the database; no grepping TDB files.\n\"\"\"\n",
+            "explanation": "This is the shebang line and a multi-line comment that describes the purpose and workflow of the script. It outlines the steps involved in performing a CALPHAD equilibrium calculation for an Al-Zn alloy at a specific temperature and composition. It also notes the use of the pycalphad library for database interaction.",
+            "materials_parameters": [
+                {
+                    "name": "Temperature",
+                    "value": "870",
+                    "units": "K",
+                    "meaning": "The temperature at which the equilibrium calculation is performed.",
+                    "typical_range": "300-2000 K"
+                },
+                {
+                    "name": "Pressure",
+                    "value": "1",
+                    "units": "atm",
+                    "meaning": "The pressure at which the equilibrium calculation is performed.",
+                    "typical_range": "0.1-100 atm"
+                },
+                {
+                    "name": "Composition of Al",
+                    "value": "0.20",
+                    "units": "at.%",
+                    "meaning": "The atomic percentage of Aluminum in the alloy.",
+                    "typical_range": "0-100 at.%"
+                }
+            ]
+        },
+        {
+            "code": "import json\nimport os\nfrom pathlib import Path\n\nimport numpy as np\nimport pandas as pd\n\ntry:\n    from dotenv import load_dotenv  # for MP API if needed; not used here\nexcept Exception:\n    load_dotenv = None\n\nfrom pycalphad import Database, equilibrium, variables as v\n",
+            "explanation": "This section imports necessary Python libraries and modules. It includes standard libraries for file handling and JSON operations, as well as third-party libraries like numpy and pandas for numerical and data manipulation. The pycalphad library is imported for performing CALPHAD calculations. The dotenv library is conditionally imported for environment variable management, though it's not used in this script.",
+            "materials_parameters": []
+        },
+        {
+            "code": "def phase_has_any(dbf: Database, phase: str, comps):\n    const = dbf.phases[phase].constituents\n    flat = {c for subl in const for c in subl}\n    # Map Species objects to their element names (e.g., 'AL', 'ZN')\n    elems = {getattr(c, 'name', str(c)) for c in flat}\n    return bool(set(comps) & elems)\n",
+            "explanation": "This function checks if a given phase in the database contains any of the specified components (elements). It extracts the constituents of a phase and maps them to their element names, then checks for intersection with the provided components list. This is used to filter relevant phases for the equilibrium calculation.",
+            "materials_parameters": []
+        },
+        {
+            "code": "def main():\n    # Load .env if present (e.g., for MP_API_KEY); no external queries here\n    if load_dotenv is not None:\n        env_path = Path('.env')\n        if env_path.exists():\n            load_dotenv(env_path)\n\n    # Database path (COST507, under TnETDBDB). Read-only.\n    db_path = Path('/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB')\n    if not db_path.exists():\n        raise FileNotFoundError(f\"TDB database not found: {db_path}\")\n\n    dbf = Database(str(db_path))\n",
+            "explanation": "The `main` function begins by attempting to load environment variables from a `.env` file if it exists. It then sets the path to the COST507 thermodynamic database file and checks for its existence. If the file is not found, an error is raised. The database is then loaded using the pycalphad `Database` class.",
+            "materials_parameters": []
+        },
+        {
+            "code": "    # Components: include VA if present in DB\n    target_comps = ['AL', 'ZN', 'VA']\n    comps = [c for c in target_comps if c in dbf.elements]\n    if ('AL' not in comps) or ('ZN' not in comps):\n        raise ValueError(f\"Database does not include required elements AL/ZN; has {sorted(dbf.elements)}\")\n\n    # Phases containing AL or ZN; sorted for reproducibility\n    phases = sorted([p for p in dbf.phases.keys() if phase_has_any(dbf, p, ['AL', 'ZN'])])\n    assert phases, \"No phases selected; did you build the phases list?\"\n",
+            "explanation": "This snippet defines the components of interest for the calculation, including Aluminum (AL), Zinc (ZN), and Vacancy (VA). It checks if these components are present in the database. If AL or ZN is missing, an error is raised. It then selects and sorts phases from the database that contain either AL or ZN, ensuring reproducibility.",
+            "materials_parameters": [
+                {
+                    "name": "Components",
+                    "value": "AL, ZN, VA",
+                    "units": "N/A",
+                    "meaning": "The elements considered in the equilibrium calculation.",
+                    "typical_range": "Varies based on system"
+                }
+            ]
+        },
+        {
+            "code": "    # Conditions: N-1 mole fraction constraints for a binary system\n    # Temperature in Kelvin, pressure in Pa\n    T = 870.0\n    P = 101325.0\n    X_AL = 0.20  # 20 at.% Al => 80 at.% Zn\n    conds = {v.T: T, v.P: P, v.N: 1.0, v.X('AL'): X_AL}\n\n    # (Guard omitted; composition constraints are set explicitly above.)\n",
+            "explanation": "This snippet sets the conditions for the equilibrium calculation. It specifies the temperature (T) in Kelvin, pressure (P) in Pascals, and the mole fraction of Aluminum (X_AL) in the system. These conditions are stored in a dictionary using pycalphad's variable objects.",
+            "materials_parameters": [
+                {
+                    "name": "Temperature",
+                    "value": "870",
+                    "units": "K",
+                    "meaning": "The temperature at which the equilibrium calculation is performed.",
+                    "typical_range": "300-2000 K"
+                },
+                {
+                    "name": "Pressure",
+                    "value": "101325",
+                    "units": "Pa",
+                    "meaning": "The pressure at which the equilibrium calculation is performed.",
+                    "typical_range": "10000-1000000 Pa"
+                },
+                {
+                    "name": "Mole Fraction of Al",
+                    "value": "0.20",
+                    "units": "N/A",
+                    "meaning": "The mole fraction of Aluminum in the binary system.",
+                    "typical_range": "0-1"
+                }
+            ]
+        },
+        {
+            "code": "    # Solve equilibrium\n    eq = equilibrium(dbf, comps, phases, conds, output='NP')\n\n    # Compute phase fractions from vertex labeling in this pycalphad version.\n    # For each vertex, look up phase name and moles NP; accumulate per phase.\n    np_da = eq['NP']  # dims: (N, P, T, X_AL, vertex)\n    ph_da = eq['Phase']  # dims: (N, P, T, X_AL, vertex)\n\n    # Extract along the single condition point (N,P,T,X_AL all len=1)\n    np_vals = np_da.values.reshape(-1)\n    ph_vals = ph_da.values.reshape(-1)\n",
+            "explanation": "This snippet performs the equilibrium calculation using the pycalphad `equilibrium` function with the specified database, components, phases, and conditions. It retrieves the phase fractions and phase names from the resulting dataset, reshaping them for further processing.",
+            "materials_parameters": []
+        },
+        {
+            "code": "    phase_moles = {}\n    for ph_label, np_mol in zip(ph_vals, np_vals):\n        ph_name = str(ph_label).strip()\n        if not ph_name:\n            continue\n        phase_moles[ph_name] = phase_moles.get(ph_name, 0.0) + float(np_mol)\n\n    tot_moles = sum(phase_moles.values())\n    if tot_moles <= 0:\n        raise RuntimeError(\"Total phase moles computed as zero or negative; check equilibrium result.\")\n\n    results = [{'phase': ph, 'fraction': m / tot_moles} for ph, m in phase_moles.items()]\n",
+            "explanation": "This snippet calculates the total moles of each phase by iterating over the phase labels and their corresponding mole values. It accumulates the moles for each phase and checks if the total moles are positive. It then computes the fraction of each phase relative to the total moles and stores the results in a list of dictionaries.",
+            "materials_parameters": []
+        },
+        {
+            "code": "    # Stability threshold per guidance\n    stable = [r for r in results if r['fraction'] > 1e-3]\n    stable_sorted = sorted(stable, key=lambda r: r['fraction'], reverse=True)\n\n    # Identify liquid if present\n    liquid_frac = 0.0\n    for r in results:\n        if r['phase'].upper().startswith('LIQUID'):\n            liquid_frac = r['fraction']\n            break\n",
+            "explanation": "This snippet filters the phases to identify those that are stable, defined as having a fraction greater than 1e-3. It sorts these stable phases by their fraction in descending order. It also checks if a liquid phase is present and records its fraction if found.",
+            "materials_parameters": [
+                {
+                    "name": "Stability Threshold",
+                    "value": "1e-3",
+                    "units": "N/A",
+                    "meaning": "The minimum phase fraction for a phase to be considered stable.",
+                    "typical_range": "1e-5 to 1e-2"
+                }
+            ]
+        },
+        {
+            "code": "    # Write outputs\n    out_json = Path('alzn_870K_results.json')\n    out_csv = Path('alzn_870K_results.csv')\n\n    payload = {\n        'database': str(db_path),\n        'components': comps,\n        'phases_considered': phases,\n        'conditions': {'T_K': T, 'P_Pa': P, 'X_AL': X_AL, 'N_mol': 1.0},\n        'phase_fractions': results,\n        'stable_phases_threshold_1e-3': stable_sorted,\n        'liquid_present': liquid_frac > 1e-6,\n        'liquid_fraction': liquid_frac,\n    }\n    with out_json.open('w') as f:\n        json.dump(payload, f, indent=2)\n\n    # CSV of all phases; write stable flag\n    df = pd.DataFrame(results)\n    df['stable_gt_1e-3'] = df['fraction'] > 1e-3\n    df.to_csv(out_csv, index=False)\n",
+            "explanation": "This snippet writes the results of the equilibrium calculation to JSON and CSV files. It creates a payload dictionary containing the database path, components, phases, conditions, phase fractions, stable phases, and liquid phase information. The JSON file is written with indentation for readability, and the CSV file includes a flag indicating whether each phase is stable.",
+            "materials_parameters": []
+        },
+        {
+            "code": "    # Human-readable summary\n    print(\"Al–Zn CALPHAD @ 870 K, X(AL)=0.20 (P=1 atm)\")\n    print(f\"Database: {db_path}\")\n    if stable_sorted:\n        print(\"Stable phases (fraction, >1e-3):\")\n        for r in stable_sorted:\n            print(f\"  - {r['phase']}: {r['fraction']:.6f}\")\n    else:\n        print(\"No phases exceed the 1e-3 fraction threshold; showing top contributors:\")\n        top = sorted(results, key=lambda r: r['fraction'], reverse=True)[:5]\n        for r in top:\n            print(f\"  - {r['phase']}: {r['fraction']:.6f}\")\n\n    state = \"Liquid present\" if (liquid_frac > 1e-6) else \"All solid\"\n    print(f\"State assessment: {state} (LIQUID fraction = {liquid_frac:.6f})\")\n\n\nif __name__ == '__main__':\n    main()\n",
+            "explanation": "This snippet prints a human-readable summary of the equilibrium calculation results. It displays the database path and lists stable phases with their fractions. If no phases exceed the stability threshold, it shows the top contributors. It also assesses the state of the system, indicating whether a liquid phase is present.",
+            "materials_parameters": []
+        }
+    ]
+}

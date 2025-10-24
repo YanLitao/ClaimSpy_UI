@@ -1,0 +1,51 @@
+{
+  "evidence_to_trajectory": {
+    "ev_baseline_kic": [
+      1,
+      0
+    ],
+    "ev_we43_properties": [
+      1,
+      1
+    ],
+    "ev_oxygen_embrittlement": [
+      2,
+      2
+    ],
+    "ev_lpbf_oxide": [
+      2,
+      0
+    ],
+    "ev_calphad_oxide": [
+      3
+    ],
+    "ev_claim_analysis": [
+      -2
+    ],
+    "ev_uncertainty": [
+      -2
+    ]
+  },
+  "step_dependencies": {
+    "0": {
+      "depends_on_step": -1,
+      "result_index": null
+    },
+    "1": {
+      "depends_on_step": 0,
+      "result_index": null
+    },
+    "2": {
+      "depends_on_step": 1,
+      "result_index": 0
+    },
+    "3": {
+      "depends_on_step": 2,
+      "result_index": null
+    },
+    "4": {
+      "depends_on_step": 3,
+      "result_index": null
+    }
+  }
+}

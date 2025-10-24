@@ -21,7 +21,14 @@ async function loadSimulationFiles(evidenceId) {
     }
 
     try {
-        const response = await fetch(`/api/simulation-files/${runType}/${problemFolder}`);
+        let response;
+        if (window.StaticConfig.isStaticMode) {
+            // Use manifest file for static mode
+            const data = await window.StaticConfig.loadSimulationFilesList(problemFolder);
+            response = { ok: true, json: () => Promise.resolve(data) };
+        } else {
+            response = await fetch(`/api/simulation-files/${runType}/${problemFolder}`);
+        }
 
         if (!response.ok) {
             if (response.status === 404) {
@@ -106,7 +113,8 @@ async function showSimulationFile(filename) {
 
     try {
         // API server will automatically check sandbox folders
-        const response = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${filename}`);
+        const fileUrl = window.StaticConfig.getSimulationFileUrl(runType, problemFolder, filename);
+        const response = await fetch(fileUrl);
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);

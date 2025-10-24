@@ -171,7 +171,7 @@ async function displayLocalPDF(evidenceMapping, evidenceId) {
             getRunTypeFromCurrentFolder() : null;
         const problemFolder = (typeof getProblemFolderFromCurrentFolder === 'function') ?
             getProblemFolderFromCurrentFolder() : null;
-        const pdfPath = `/api/data/${runType}/${problemFolder}/evidences/${evidenceMapping.filename}`;
+        const pdfPath = window.StaticConfig.getEvidenceUrl(problemFolder, evidenceMapping.filename);
 
         readingModeViewer.innerHTML = `
             <div class="pdf-viewer-container">

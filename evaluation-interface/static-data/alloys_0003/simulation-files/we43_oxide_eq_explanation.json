@@ -1,0 +1,248 @@
+{
+    "snippets": [
+        {
+            "code": "import json, csv, sys, os\nfrom pathlib import Path\nimport numpy as np\nfrom pycalphad import Database, equilibrium, variables as v",
+            "explanation": "This snippet imports necessary libraries and modules for the script. These include standard libraries for file handling and numerical operations, as well as the `pycalphad` library for thermodynamic calculations.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# ---- Configuration (single-run script per CALPHAD.md guidance) ----\n# Paths\nCWD = Path.cwd()\nTDB_PATH = Path('/Users/delip/play/miniclaimspy/TnETDBDB/cost507R.TDB')\nassert TDB_PATH.exists(), f\"TDB not found: {TDB_PATH}\"",
+            "explanation": "This snippet sets up the configuration for the script, including defining the current working directory and the path to the thermodynamic database (TDB) file. It also checks if the TDB file exists.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Alloy: WE43 with 1.0 wt% O; balance Mg\n# Composition in weight percent (normalized to 100 wt%)\nwt_comp = {\n    'MG': 91.5,\n    'Y': 4.0,\n    'ND': 3.0,\n    'ZR': 0.5,\n    'O': 1.0,\n}",
+            "explanation": "This snippet defines the composition of the WE43 alloy in weight percent, including 1.0 wt% oxygen. The composition is normalized to 100 wt%.",
+            "materials_parameters": [
+                {
+                    "name": "Composition",
+                    "value": "{'MG': 91.5, 'Y': 4.0, 'ND': 3.0, 'ZR': 0.5, 'O': 1.0}",
+                    "units": "weight percent",
+                    "meaning": "The weight percentage of each element in the alloy.",
+                    "typical_range": "0-100 wt%"
+                }
+            ]
+        },
+        {
+            "code": "# Atomic weights (g/mol)\nMASS = {\n    'MG': 24.305,\n    'Y': 88.90584,\n    'ND': 144.242,\n    'ZR': 91.224,\n    'O': 15.999,\n}",
+            "explanation": "This snippet defines the atomic weights of the elements in the alloy in grams per mole. These values are used for converting weight percentages to mole fractions.",
+            "materials_parameters": [
+                {
+                    "name": "Atomic Weights",
+                    "value": "{'MG': 24.305, 'Y': 88.90584, 'ND': 144.242, 'ZR': 91.224, 'O': 15.999}",
+                    "units": "g/mol",
+                    "meaning": "The atomic weight of each element, used for mole fraction calculations.",
+                    "typical_range": "Varies per element"
+                }
+            ]
+        },
+        {
+            "code": "# Convert weight% to mole fractions (exclude VA)\n# Normalize to 1.0 total\nmoles = {el: wt_comp[el] / MASS[el] for el in wt_comp}\ntot_moles = sum(moles.values())\nx = {el: moles[el] / tot_moles for el in moles}\n# Enforce small numerical tolerance and renormalize\nneg = [k for k, v_ in x.items() if v_ < 0]\nassert not neg, f\"Negative mole fractions computed for {neg}\"\nsumx = sum(x.values())\nfor k in x:\n    x[k] /= sumx",
+            "explanation": "This snippet converts the weight percentages of the alloy components to mole fractions, excluding vacancies (VA). It normalizes the mole fractions to ensure they sum to 1.0 and checks for any negative values, which would indicate an error.",
+            "materials_parameters": [
+                {
+                    "name": "Mole Fractions",
+                    "value": "Calculated from weight percentages and atomic weights",
+                    "units": "dimensionless",
+                    "meaning": "The proportion of each element in the alloy in terms of moles.",
+                    "typical_range": "0-1"
+                }
+            ]
+        },
+        {
+            "code": "# Components (include VA for solution models)\ncomponents = ['MG', 'Y', 'ND', 'ZR', 'O', 'VA']",
+            "explanation": "This snippet defines the components of the system, including vacancies (VA), which are necessary for modeling solution phases in thermodynamic calculations.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Conditions: N−1 mole fraction constraints for N substitutional components (exclude VA)\nconds = {\n    v.T: np.array([298.0, 900.0]),\n    v.P: 101325.0,\n    v.N: 1.0,\n    v.X('MG'): float(x['MG']),\n    v.X('Y'): float(x['Y']),\n    v.X('ND'): float(x['ND']),\n    v.X('ZR'): float(x['ZR']),\n    # X('O') is implied to satisfy sum=1 among substitutional elements\n}",
+            "explanation": "This snippet sets the conditions for the equilibrium calculation, including temperature, pressure, and mole fraction constraints for the substitutional components. The mole fraction of oxygen is implied to ensure the sum equals 1.",
+            "materials_parameters": [
+                {
+                    "name": "Temperature",
+                    "value": "[298.0, 900.0]",
+                    "units": "K",
+                    "meaning": "The range of temperatures for the equilibrium calculation.",
+                    "typical_range": "Varies depending on the system"
+                },
+                {
+                    "name": "Pressure",
+                    "value": "101325.0",
+                    "units": "Pa",
+                    "meaning": "The pressure at which the equilibrium is calculated, equivalent to atmospheric pressure.",
+                    "typical_range": "0-1e7 Pa"
+                },
+                {
+                    "name": "Mole Fractions",
+                    "value": "Calculated for MG, Y, ND, ZR",
+                    "units": "dimensionless",
+                    "meaning": "The specified mole fractions for the equilibrium calculation.",
+                    "typical_range": "0-1"
+                }
+            ]
+        },
+        {
+            "code": "# Load database and select phases containing at least one of our components\nprint(f\"Loading database: {TDB_PATH}\")\ndbf = Database(str(TDB_PATH))\n\nsel_comps = set(['MG', 'Y', 'ND', 'ZR', 'O'])\nphases = []\nfor ph in sorted(dbf.phases.keys()):\n    const = dbf.phases[ph].constituents\n    # Flatten constituents to element symbols\n    flat = set()\n    for subl in const:\n        for c in subl:\n            flat.add(str(c))\n    if flat & sel_comps:\n        phases.append(ph)\n\nassert phases, \"No phases selected; check database contents.\"\nprint(f\"Selected {len(phases)} phases relevant to components {sorted(sel_comps)}\")",
+            "explanation": "This snippet loads the thermodynamic database and selects phases that contain at least one of the specified components. It ensures that relevant phases are considered for the equilibrium calculation.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Run equilibrium\nprint(\"Computing equilibrium at T=298 K and 900 K ...\")\neq = equilibrium(dbf, components, phases, conds, verbose=False)",
+            "explanation": "This snippet runs the equilibrium calculation using the `pycalphad` library, considering the specified components, phases, and conditions. It computes the equilibrium state at the given temperatures.",
+            "materials_parameters": []
+        },
+        {
+            "code": "\"\"\"\nIn pycalphad, when no explicit 'phase' dimension exists, the equilibrium is\nrepresented as a convex combination over 'vertex' entries. Each vertex has a\nphase label in eq['Phase'] and a corresponding amount in eq['NP'].\nAggregate NP by Phase across vertices to get per-phase moles.\n\"\"\"",
+            "explanation": "This comment explains how `pycalphad` represents equilibrium results when no explicit 'phase' dimension is present. It describes the use of 'vertex' entries to aggregate phase amounts.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Identify oxide phases by presence of 'O' in their constituents\noxide_phases = set()\nfor ph in phases:\n    const = dbf.phases[ph].constituents\n    if any('O' in {str(c) for c in subl} for subl in const):\n        oxide_phases.add(ph)",
+            "explanation": "This snippet identifies oxide phases by checking for the presence of oxygen in their constituents. It creates a set of phases that contain oxygen, which is important for analyzing oxide formation.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Prepare results for each temperature\ntemps = list(eq.T.values)\nres_rows = []\nsummary = {\n    'composition_wt%': wt_comp,\n    'composition_mole_fraction': {k: float(v) for k, v in x.items()},\n    'temperatures_K': temps,\n    'pressure_Pa': 101325.0,\n    'tdb': str(TDB_PATH),\n    'notes': 'Phase fractions are mole-based. Oxides identified via constituent O in phase model. Aggregation uses NP-by-vertex grouped by Phase.'\n}",
+            "explanation": "This snippet prepares the results for each temperature, initializing a summary dictionary with the composition, temperatures, pressure, and notes about the calculation. It also initializes a list to store result rows.",
+            "materials_parameters": [
+                {
+                    "name": "Temperatures",
+                    "value": "Extracted from equilibrium results",
+                    "units": "K",
+                    "meaning": "The temperatures at which the equilibrium was calculated.",
+                    "typical_range": "Varies depending on the system"
+                },
+                {
+                    "name": "Pressure",
+                    "value": "101325.0",
+                    "units": "Pa",
+                    "meaning": "The pressure at which the equilibrium is calculated, equivalent to atmospheric pressure.",
+                    "typical_range": "0-1e7 Pa"
+                }
+            ]
+        },
+        {
+            "code": "stable_by_T = {}\nfor iT, T in enumerate(temps):\n    # Slice NP and Phase at this T and current composition\n    np_sel = eq['NP'].isel(T=iT, P=0, N=0, X_MG=0, X_Y=0, X_ND=0, X_ZR=0)\n    ph_sel = eq['Phase'].isel(T=iT, P=0, N=0, X_MG=0, X_Y=0, X_ND=0, X_ZR=0)\n\n    # Aggregate NP by Phase label\n    per_phase = {}\n    total_moles = float(np_sel.sum('vertex').values)\n    # Guard against zero total (should not happen)\n    if not np.isfinite(total_moles) or total_moles <= 0:\n        total_moles = 1.0\n\n    for iv in range(np_sel.sizes['vertex']):\n        fmol = float(np_sel.isel(vertex=iv).values)\n        if fmol <= 0:\n            continue\n        ph_name = str(ph_sel.isel(vertex=iv).values)\n        # Some vertices may be empty (phase name 'None'); skip\n        if not ph_name or ph_name.lower() == 'none':\n            continue\n        per_phase[ph_name] = per_phase.get(ph_name, 0.0) + fmol\n\n    # Convert to fractions\n    stable = []\n    stable_oxides = []\n    for ph_name, nmol in per_phase.items():\n        frac = nmol / total_moles\n        if frac > 1e-8:\n            is_ox = ph_name in oxide_phases\n            res_rows.append({\n                'T_K': float(T),\n                'phase': ph_name,\n                'mole_fraction': float(frac),\n                'is_oxide': bool(is_ox)\n            })\n            stable.append((ph_name, float(frac)))\n            if is_ox:\n                stable_oxides.append((ph_name, float(frac)))\n\n    stable.sort(key=lambda t: t[1], reverse=True)\n    stable_oxides.sort(key=lambda t: t[1], reverse=True)\n    stable_by_T[str(float(T))] = {\n        'stable_phases': stable,\n        'oxide_phases': stable_oxides,\n        'total_oxide_fraction': float(sum(f for _, f in stable_oxides))\n    }",
+            "explanation": "This snippet processes the equilibrium results for each temperature, aggregating the phase amounts and identifying stable phases and oxides. It calculates the mole fractions of each phase and stores the results in a structured format.",
+            "materials_parameters": []
+        },
+        {
+            "code": "summary['stable_by_T'] = stable_by_T",
+            "explanation": "This line adds the stable phase information, organized by temperature, to the summary dictionary. It includes details about stable phases and oxide phases for each temperature.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Write outputs\njson_path = CWD / 'we43_oxide_results.json'\ncsv_path = CWD / 'we43_oxide_results.csv'\nwith open(json_path, 'w') as f:\n    json.dump(summary, f, indent=2)\n\nwith open(csv_path, 'w', newline='') as f:\n    w = csv.DictWriter(f, fieldnames=['T_K', 'phase', 'mole_fraction', 'is_oxide'])\n    w.writeheader()\n    for row in res_rows:\n        w.writerow(row)",
+            "explanation": "This snippet writes the results to JSON and CSV files, storing the summary and detailed phase information. It ensures the results are saved in a structured and accessible format.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Print concise human summary\nprint(\"=== CALPHAD Summary ===\")\nprint(f\"Alloy (wt%): {wt_comp}\")\nprint(\"Mole fractions:\")\nfor k in ['MG','Y','ND','ZR','O']:\n    print(f\"  X({k}) = {x[k]:.6f}\")\nfor T in temps:\n    info = stable_by_T[str(float(T))]\n    top = \", \".join([f\"{p}:{f:.3f}\" for p, f in info['stable_phases'][:6]])\n    ox = \", \".join([f\"{p}:{f:.3f}\" for p, f in info['oxide_phases']])\n    print(f\"T = {T:.1f} K\")\n    print(f\"  Top phases: {top if top else 'None'}\")\n    print(f\"  Oxide phases: {ox if ox else 'None'}\")\n    print(f\"  Total oxide fraction (mole): {info['total_oxide_fraction']:.4f}\")",
+            "explanation": "This snippet prints a concise summary of the CALPHAD results, including the alloy composition, mole fractions, and stable phases at each temperature. It provides a quick overview of the key findings.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# ---- Metal-only equilibrium (WE43 baseline without O) ----\n# Rationale: COST507R lacks explicit oxide phases; oxygen cannot be accommodated in metallic phases\n# so we also report the metal-only equilibrium for base WE43 (Mg-4Y-3Nd-0.5Zr wt%).",
+            "explanation": "This comment introduces the rationale for calculating a metal-only equilibrium, excluding oxygen. It acknowledges the limitations of the database in representing oxide phases and provides context for the subsequent calculations.",
+            "materials_parameters": []
+        },
+        {
+            "code": "wt_comp_metal = {\n    'MG': 92.5,\n    'Y': 4.0,\n    'ND': 3.0,\n    'ZR': 0.5,\n}\nmm_metal = {el: wt_comp_metal[el] / MASS[el] for el in wt_comp_metal}\ntot_m_metal = sum(mm_metal.values())\nx_metal = {el: mm_metal[el] / tot_m_metal for el in mm_metal}",
+            "explanation": "This snippet defines the composition of the metal-only WE43 alloy, excluding oxygen, and converts the weight percentages to mole fractions. It prepares the data for the metal-only equilibrium calculation.",
+            "materials_parameters": [
+                {
+                    "name": "Composition (Metal-only)",
+                    "value": "{'MG': 92.5, 'Y': 4.0, 'ND': 3.0, 'ZR': 0.5}",
+                    "units": "weight percent",
+                    "meaning": "The weight percentage of each element in the metal-only alloy.",
+                    "typical_range": "0-100 wt%"
+                }
+            ]
+        },
+        {
+            "code": "components_metal = ['MG', 'Y', 'ND', 'ZR', 'VA']\nconds_metal = {\n    v.T: np.array([298.0, 900.0]),\n    v.P: 101325.0,\n    v.N: 1.0,\n    # For 4 substitutional components, set 3 constraints; X(ZR) implied\n    v.X('MG'): float(x_metal['MG']),\n    v.X('Y'): float(x_metal['Y']),\n    v.X('ND'): float(x_metal['ND']),\n}",
+            "explanation": "This snippet sets the components and conditions for the metal-only equilibrium calculation, excluding oxygen. It specifies the mole fraction constraints for the substitutional components.",
+            "materials_parameters": [
+                {
+                    "name": "Temperature",
+                    "value": "[298.0, 900.0]",
+                    "units": "K",
+                    "meaning": "The range of temperatures for the metal-only equilibrium calculation.",
+                    "typical_range": "Varies depending on the system"
+                },
+                {
+                    "name": "Pressure",
+                    "value": "101325.0",
+                    "units": "Pa",
+                    "meaning": "The pressure at which the metal-only equilibrium is calculated, equivalent to atmospheric pressure.",
+                    "typical_range": "0-1e7 Pa"
+                },
+                {
+                    "name": "Mole Fractions (Metal-only)",
+                    "value": "Calculated for MG, Y, ND",
+                    "units": "dimensionless",
+                    "meaning": "The specified mole fractions for the metal-only equilibrium calculation.",
+                    "typical_range": "0-1"
+                }
+            ]
+        },
+        {
+            "code": "# Select phases that contain any of these metals\nphases_metal = []\nfor ph in sorted(dbf.phases.keys()):\n    const = dbf.phases[ph].constituents\n    flat = set()\n    for subl in const:\n        for c in subl:\n            flat.add(str(c))\n    if flat & set(['MG','Y','ND','ZR']):\n        phases_metal.append(ph)",
+            "explanation": "This snippet selects phases that contain any of the metal components (excluding oxygen) for the metal-only equilibrium calculation. It ensures that relevant phases are considered.",
+            "materials_parameters": []
+        },
+        {
+            "code": "eq_metal = equilibrium(dbf, components_metal, phases_metal, conds_metal, verbose=False)",
+            "explanation": "This line runs the metal-only equilibrium calculation using the `pycalphad` library, considering the specified components, phases, and conditions. It computes the equilibrium state for the metal-only system.",
+            "materials_parameters": []
+        },
+        {
+            "code": "def per_phase_fractions_from_eq(eqds, comp_keys):\n    temps_local = list(eqds.T.values)\n    out = {}\n    for iT, T in enumerate(temps_local):\n        np_sel = eqds['NP'].isel(T=iT, P=0, N=0, **{f'X_{k}':0 for k in comp_keys})\n        ph_sel = eqds['Phase'].isel(T=iT, P=0, N=0, **{f'X_{k}':0 for k in comp_keys})\n        total = float(np_sel.sum('vertex').values)\n        if not np.isfinite(total) or total <= 0:\n            phases_ = []\n        else:\n            accum = {}\n            for iv in range(np_sel.sizes['vertex']):\n                nmol = float(np_sel.isel(vertex=iv).values)\n                if nmol <= 0: continue\n                pname = str(ph_sel.isel(vertex=iv).values)\n                if not pname or pname.lower()=='none':\n                    continue\n                accum[pname] = accum.get(pname, 0.0) + nmol\n            phases_ = sorted([(k, v/total) for k, v in accum.items()], key=lambda t: t[1], reverse=True)\n        out[str(float(T))] = phases_\n    return temps_local, out",
+            "explanation": "This function processes the equilibrium results to calculate per-phase mole fractions for the metal-only system. It aggregates phase amounts and organizes the results by temperature.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Build comp_keys present in eq_metal dims (exclude 'ZR' if not explicit)\ndim_keys = [d for d in eq_metal.dims if d.startswith('X_')]\ncomp_keys = [d.split('_',1)[1] for d in dim_keys]\ntemps_metal, stable_metal_by_T = per_phase_fractions_from_eq(eq_metal, comp_keys)",
+            "explanation": "This snippet extracts the component keys from the equilibrium results and calculates the stable phases for the metal-only system, organizing the results by temperature.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Persist metal-only results\njson_path_metal = CWD / 'we43_metal_results.json'\ncsv_path_metal = CWD / 'we43_metal_results.csv'\nmetal_summary = {\n    'composition_wt%': wt_comp_metal,\n    'composition_mole_fraction': {k: float(v) for k, v in x_metal.items()},\n    'temperatures_K': temps_metal,\n    'pressure_Pa': 101325.0,\n    'tdb': str(TDB_PATH),\n    'stable_by_T': stable_metal_by_T,\n}\nwith open(json_path_metal, 'w') as f:\n    json.dump(metal_summary, f, indent=2)\n\nwith open(csv_path_metal, 'w', newline='') as f:\n    w = csv.writer(f)\n    w.writerow(['T_K','phase','mole_fraction'])\n    for Tstr, plist in stable_metal_by_T.items():\n        for ph, frac in plist:\n            w.writerow([float(Tstr), ph, float(frac)])",
+            "explanation": "This snippet writes the metal-only equilibrium results to JSON and CSV files, storing the summary and detailed phase information. It ensures the results are saved in a structured and accessible format.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# ---- Stoichiometric oxide estimate (upper-bound) ----\n# Allocate 1.0 g O to oxides in order of expected oxygen affinity: Y -> ND -> ZR -> MG\nO_avail = 1.0  # g per 100 g alloy\noxide_seq = [\n    ('Y', 'Y2O3', 2*MASS['Y'] + 3*MASS['O'], 3*MASS['O']/(2*MASS['Y'])),  # (element, oxide_name, M_oxide, mO_per_g_element)\n    ('ND','Nd2O3', 2*MASS['ND'] + 3*MASS['O'], 3*MASS['O']/(2*MASS['ND'])),\n    ('ZR','ZrO2', MASS['ZR'] + 2*MASS['O'], 2*MASS['O']/MASS['ZR']),\n    ('MG','MgO', MASS['MG'] + MASS['O'], MASS['O']/MASS['MG']),\n]\navailable = {'Y': 4.0, 'ND': 3.0, 'ZR': 0.5, 'MG': 91.5}  # g available in alloy when O=1.0 wt%\nformed = []  # list of (oxide, mass_g, element_consumed_g, O_used_g)\nfor el, ox, Mox, o_per_el in oxide_seq:\n    if O_avail <= 0: break\n    # Max element that can be oxidized by remaining oxygen\n    el_needed_per_O = 1.0 / o_per_el  # g el per g O\n    el_needed = min(available[el], O_avail * el_needed_per_O)\n    if el_needed <= 0: continue\n    O_used = el_needed * o_per_el\n    mass_oxide = el_needed + O_used\n    available[el] -= el_needed\n    O_avail -= O_used\n    formed.append((ox, mass_oxide, el_needed, O_used))",
+            "explanation": "This snippet estimates the stoichiometric formation of oxides by allocating 1.0 g of oxygen to form oxides in order of expected oxygen affinity. It calculates the mass of each oxide formed and the amount of oxygen used.",
+            "materials_parameters": [
+                {
+                    "name": "Oxygen Availability",
+                    "value": "1.0",
+                    "units": "g per 100 g alloy",
+                    "meaning": "The amount of oxygen available for forming oxides.",
+                    "typical_range": "Varies depending on the system"
+                }
+            ]
+        },
+        {
+            "code": "stoich = {\n    'oxides': [{'oxide': ox, 'mass_g_per_100g': mass, 'element_consumed_g': elc, 'O_used_g': Ou}\n               for (ox, mass, elc, Ou) in formed],\n    'total_oxide_mass_g_per_100g': float(sum(m for (_, m, _, _) in formed)),\n    'O_unreacted_g_per_100g': float(O_avail),\n}",
+            "explanation": "This snippet organizes the stoichiometric oxide estimate into a dictionary, including details about each oxide formed, the total oxide mass, and any unreacted oxygen. It provides a structured summary of the oxide formation.",
+            "materials_parameters": []
+        },
+        {
+            "code": "# Merge stoichiometric estimate into the oxygen-run JSON\nsummary['stoichiometric_oxide_estimate'] = stoich\nwith open(json_path, 'w') as f:\n    json.dump(summary, f, indent=2)",
+            "explanation": "This snippet merges the stoichiometric oxide estimate into the main summary and writes the updated summary to the JSON file. It ensures the stoichiometric estimate is included in the final results.",
+            "materials_parameters": []
+        },
+        {
+            "code": "print(\"\\n=== Metal-only Equilibrium (no O) ===\")\nprint(f\"Alloy (wt%): {wt_comp_metal}\")\nfor k in ['MG','Y','ND','ZR']:\n    print(f\"  X({k}) = {x_metal[k]:.6f}\")\nfor T in temps_metal:\n    plist = stable_metal_by_T[str(float(T))]\n    top = \", \".join([f\"{p}:{f:.3f}\" for p, f in plist[:8]])\n    print(f\"T = {T:.1f} K\")\n    print(f\"  Top phases: {top if top else 'None'}\")",
+            "explanation": "This snippet prints a summary of the metal-only equilibrium results, including the alloy composition, mole fractions, and stable phases at each temperature. It provides a quick overview of the key findings for the metal-only system.",
+            "materials_parameters": []
+        },
+        {
+            "code": "print(\"\\n=== Stoichiometric Oxide Estimate (with 1 wt% O) ===\")\nfor ox in stoich['oxides']:\n    print(f\"  {ox['oxide']}: {ox['mass_g_per_100g']:.3f} g per 100 g alloy\")\nprint(f\"  Total oxides: {stoich['total_oxide_mass_g_per_100g']:.3f} g per 100 g alloy\")\nif stoich['O_unreacted_g_per_100g'] > 1e-6:\n    print(f\"  Unreacted O: {stoich['O_unreacted_g_per_100g']:.3f} g per 100 g\")",
+            "explanation": "This snippet prints a summary of the stoichiometric oxide estimate, including the mass of each oxide formed and the total oxide mass. It also reports any unreacted oxygen, providing a comprehensive overview of the oxide formation.",
+            "materials_parameters": []
+        }
+    ]
+}

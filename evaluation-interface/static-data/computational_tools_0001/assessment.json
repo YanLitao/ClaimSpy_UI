@@ -1,0 +1,48 @@
+{
+  "type": "assessment",
+  "format_version": "0.2",
+  "problem_id": "computational_tools_0001",
+  "problem_version": "1.0",
+  "team": "upenn",
+  "run_id": "claimspy-v2-run",
+  "likert_score": -2,
+  "continuous_score": 0.01,
+  "confidence": 0.92,
+  "wall_clock_time": 590.3065621852875,
+  "explanation": [
+    {
+      "text": "Interpretation: The claim asserts a solid state at equilibrium. The claim card defines the decision criterion as liquid fraction f_L \u2264 0.01 at T = 870 K, P \u2248 1 bar, x_Al = 0.20.",
+      "evidence": [
+        "E_claim",
+        "E_card"
+      ]
+    },
+    {
+      "text": "CALPHAD at the exact T\u2013x\u2013P returns LIQUID only with f_L = 1.000, which exceeds the solid criterion (f_L \u2264 0.01) by a wide margin. Therefore, the claim is contradicted at these conditions.",
+      "evidence": [
+        "E_calphad",
+        "E_card"
+      ]
+    }
+  ],
+  "evidence": {
+    "E_claim": {
+      "type": "claim",
+      "id": "E_claim",
+      "source": "claim",
+      "citation": "Al20Zn80 at 870K is a solid at equilibrium"
+    },
+    "E_card": {
+      "type": "other",
+      "id": "E_card",
+      "source": "claim_card",
+      "citation": "{\"SystemEntity\": \"Al20Zn80 alloy\", \"StatePhase\": \"equilibrium at T = 870 K\", \"Conditions\": \"T = 870 K, P \u2248 1 bar, x_Al = 0.20\", \"Manipulation\": \"single CALPHAD evaluation\", \"ObservableFoM\": \"equilibrium liquid fraction f_L\", \"Units\": \"dimensionless\", \"Quantifier\": \"existential\", \"Threshold\": \"f_L \u2264 0.01\"}"
+    },
+    "E_calphad": {
+      "type": "simulation result",
+      "id": "E_calphad",
+      "source": "observation_0",
+      "citation": "The alloy is entirely molten with the LIQUID phase fraction f_L = 1.000. No solid solutions (FCC_A1, HCP_ZN, etc.) have non-zero phase fractions."
+    }
+  }
+}

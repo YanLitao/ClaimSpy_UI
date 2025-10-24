@@ -1,10 +1,46 @@
-# ClaimSpy UI - Scientific Claim Assessment Interface# Path Configuration Changes Summary
+# ClaimSpy UI - Scientific Claim Assessment Interface
 
+## 🎯 Overview
 
+ClaimSpy UI is a comprehensive web-based interface for evaluating scientific claims with AI-powered analysis, trajectory visualization, and evidence extraction. The system provides interactive tools for researchers to analyze scientific assessments, explore reasoning trajectories, and examine supporting evidence.
 
-## 🎯 Overview## Overview
+## 🚀 Deployment Options
 
-ClaimSpy UI is a comprehensive web-based interface for evaluating scientific claims with AI-powered analysis, trajectory visualization, and evidence extraction. The system provides interactive tools for researchers to analyze scientific assessments, explore reasoning trajectories, and examine supporting evidence.Modified the ClaimSpy UI codebase to remove hardcoded user-specific paths and make it safe for GitHub upload and distribution.
+ClaimSpy UI now supports **two deployment modes**:
+
+### 📱 **Static Mode (GitHub Pages)** - *Recommended for sharing results*
+- ✅ **Zero setup** - Works directly on GitHub Pages
+- ✅ **No server required** - Pure HTML/CSS/JavaScript  
+- ✅ **Fast loading** - All data pre-exported as JSON files
+- ✅ **Easy sharing** - Public URL for research presentations
+
+### 🔧 **Dynamic Mode (Local Server)** - *Best for development*
+- ✅ **Live data access** - Real-time file system integration
+- ✅ **Development flexibility** - Easy data updates and modifications
+- ✅ **Full functionality** - Complete API-based data access
+
+### Quick Start
+
+**For GitHub Pages deployment (Static Mode):**
+```bash
+# 1. Export static data
+python3 export_static_data.py
+
+# 2. Test locally (optional)
+python3 test_static_server.py
+# Visit: http://localhost:8000/evaluation-interface/
+
+# 3. Push to GitHub - automatic deployment via GitHub Actions
+```
+
+**For local development (Dynamic Mode):**
+```bash
+# Set isStaticMode: false in static-config.js, then:
+python3 api_server.py
+# Visit: http://localhost:8080
+```
+
+📖 **Detailed Guide**: See [STATIC_DEPLOYMENT_GUIDE.md](STATIC_DEPLOYMENT_GUIDE.md) for complete instructions.
 
 
 

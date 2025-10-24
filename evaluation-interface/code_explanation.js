@@ -38,7 +38,8 @@ async function loadExplanationData(pythonFilename) {
             return null;
         }
 
-        const response = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${explanationFilename}`);
+        const fileUrl = window.StaticConfig.getSimulationFileUrl(runType, problemFolder, explanationFilename);
+        const response = await fetch(fileUrl);
         if (!response.ok) {
             console.log(`No explanation file found: ${explanationFilename}`);
             return null;
@@ -493,7 +494,8 @@ async function showSimulationFileWithExplanation(filename) {
     welcomeMessage.style.display = 'none';
 
     try {
-        const response = await fetch(`/api/simulation-file/${runType}/${problemFolder}/${filename}`);
+        const fileUrl = window.StaticConfig.getSimulationFileUrl(runType, problemFolder, filename);
+        const response = await fetch(fileUrl);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

@@ -1,0 +1,36 @@
+# Jekyll configuration for GitHub Pages deployment
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Include evaluation-interface directory and all its contents
+include:
+  - evaluation-interface
+  - index.html
+
+# Exclude source files and development tools
+exclude:
+  - api_server.py
+  - export_static_data.py
+  - data/sonnet45-full-run-codex-gpt5-1010/sandbox-*
+  - README.md
+  - .github
+
+# Plugin settings (GitHub Pages supported plugins)
+plugins:
+  - jekyll-relative-links
+
+# Relative links settings
+relative_links:
+  enabled: true
+  collections: false
+
+# Serve static files with correct MIME types
+plugins:
+  - jekyll-optional-front-matter
+
+# Don't process these files through Jekyll
+keep_files:
+  - evaluation-interface/static-data
+  - evaluation-interface/pdfjs

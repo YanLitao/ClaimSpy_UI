@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "alloys_0003",
+      "run_type": "dry-run",
+      "has_trajectory": true,
+      "has_mapping": true,
+      "has_prediction": true,
+      "has_evidence_source": true
+    },
+    {
+      "name": "computational_tools_0001",
+      "run_type": "drop4",
+      "has_trajectory": true,
+      "has_mapping": true,
+      "has_prediction": true,
+      "has_evidence_source": false
+    }
+  ],
+  "generated_at": "2025-10-24T14:55:06.372667",
+  "total_count": 2,
+  "version": "1.0.0",
+  "note": "Static export for GitHub Pages deployment"
+}

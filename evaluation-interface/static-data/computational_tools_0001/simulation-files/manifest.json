@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "name": "alzn_870K_explanations.json",
+      "size": 11475,
+      "extension": ".json"
+    },
+    {
+      "name": "alzn_870K_results.csv",
+      "size": 46,
+      "extension": ".csv"
+    },
+    {
+      "name": "alzn_870K_results.json",
+      "size": 2545,
+      "extension": ".json"
+    },
+    {
+      "name": "run_calphad_alzn_870K.py",
+      "size": 5250,
+      "extension": ".py"
+    },
+    {
+      "name": "run_calphad_alzn_870K_explanation.json",
+      "size": 12678,
+      "extension": ".json"
+    }
+  ],
+  "total_count": 5,
+  "folder": "computational_tools_0001",
+  "run_type": "drop4"
+}

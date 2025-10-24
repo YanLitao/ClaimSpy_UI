@@ -127,8 +127,29 @@ function hideTrajectoryFlow() {
     if (leftPanel) {
         // Collapse the left panel
         leftPanel.classList.remove('expanded');
-        // Clear the content
-        leftPanel.innerHTML = '<div class="welcome-message">Select an item to view details</div>';
+
+        // Restore the complete left panel structure
+        leftPanel.innerHTML = `
+            <div class="left-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>JSON Data</h3>
+                <button onclick="closeLeftPanel()"
+                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <div class="left-panel-content">
+                <div id="jsonContent">
+                    ${window.fullJsonData ?
+                `<div class="json-viewer" id="fullJsonViewer">${formatJsonForHighlight(window.fullJsonData, [])}</div>` :
+                '<p style="color: #666; padding: 2rem; text-align: center;">Select an assessment to view JSON data</p>'
+            }
+                </div>
+            </div>
+        `;
+
+        // Reset JSON data state if available
+        if (window.fullJsonData) {
+            window.currentJsonData = window.fullJsonData;
+            window.currentJsonType = 'assessment';
+        }
     }
 }
 
