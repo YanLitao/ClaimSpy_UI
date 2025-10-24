@@ -112,7 +112,6 @@ async function displayExplanations(explanations) {
 
                     // Create file boxes (inline display)
                     const fileBoxesHtml = sortedFiles.map(file => {
-                        const visualizationIndicator = file.hasVisualization ? ' 📊' : '';
                         const tooltipText = file.hasVisualization ?
                             `View ${file.name} with visualization (${formatFileSize(file.size)})` :
                             `View ${file.name} (${formatFileSize(file.size)})`;
@@ -125,7 +124,7 @@ async function displayExplanations(explanations) {
                              onmouseover="this.style.backgroundColor='#e9ecef'" 
                              onmouseout="this.style.backgroundColor='#f8f9fa'"
                              title="${tooltipText}">
-                            ${file.name}${visualizationIndicator}
+                            ${file.name}
                         </div>
                     `;
                     }).join('');
@@ -156,7 +155,7 @@ async function displayExplanations(explanations) {
 
                             return `
                             <div class="visualization-item" style="margin-bottom: 1rem;">
-                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📊 Visualization for ${filesLabel}</div>
+                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;"> Visualization for ${filesLabel}</div>
                                 <div style="text-align: center;">
                                     <img src="${window.StaticConfig.getSimulationFileUrl(runType, problemFolder, visualizationFile)}" 
                                          alt="Visualization for ${filesLabel}"

@@ -87,7 +87,7 @@ def scan_available_folders():
 
     # Sort by folder name
     folders.sort(key=lambda x: x['name'])
-    print(f"📊 Total folders found: {len(folders)}")
+    print(f" Total folders found: {len(folders)}")
     return folders
 
 
@@ -216,8 +216,8 @@ def generate_folders_config(folders):
     with open(STATIC_FOLDERS_FILE, 'w', encoding='utf-8') as f:
         json.dump(folders_config, f, indent=2, ensure_ascii=False)
 
-    print(f"    ✅ Generated {STATIC_FOLDERS_FILE}")
-    print(f"    📊 {len(client_folders)} folders configured")
+    print(f"     Generated {STATIC_FOLDERS_FILE}")
+    print(f"     {len(client_folders)} folders configured")
 
 
 def create_index_redirect():

@@ -997,10 +997,6 @@ body {
     position: relative;
 }
 
-.simulation-file-box[title*="visualization"] {
-    border-left: 3px solid #17a2b8 !important;
-}
-
 /* PDF Viewer Styles */
 .pdf-viewer-container {
     width: 100%;
