@@ -197,8 +197,7 @@ function formatCsvAsTable(csvContent, filename) {
 
         let tableHtml = `
             <div class="csv-table-container">
-                <h4 style="color: #2c3e50; margin-bottom: 1rem;">📋 Data Table</h4>
-                <div style="overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e9ecef;">
+                <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                         <thead>
                             <tr style="background: #f8f9fa;">

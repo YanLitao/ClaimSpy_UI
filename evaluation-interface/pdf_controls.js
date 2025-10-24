@@ -521,11 +521,19 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
 
         // For PDF.js viewer, we need to convert relative paths to absolute paths
         // since PDF.js viewer runs in an iframe with a different base path
+        const originalPath = filePath;
         if (filePath.startsWith('./')) {
             // Convert ./static-data/... to ../../static-data/... 
             // to go back from pdfjs/web/ to the root directory
             filePath = '../..' + filePath.substring(1);
+            console.log('Path conversion applied:');
+            console.log('  Original:', originalPath);
+            console.log('  Converted:', filePath);
+        } else {
+            console.log('No path conversion needed for:', filePath);
         }
+
+        console.log('Final file path for PDF.js:', filePath);
 
         // Determine if it's a PDF file for enhanced features
         const isPDF = evidenceMapping.filename.toLowerCase().endsWith('.pdf');
@@ -564,10 +572,10 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                         onload="handlePDFFrameLoad('${evidenceId}')"
                         onerror="handlePDFFrameError('${evidenceId}')"></iframe>`
                 : evidenceMapping.filename.toLowerCase().endsWith('.txt') ?
-                    `<iframe src="${filePath}" width="100%" height="600px" style="border: 1px solid #ddd; background: white;"></iframe>` :
+                    `<iframe src="${originalPath || filePath}" width="100%" height="600px" style="border: 1px solid #ddd; background: white;"></iframe>` :
                     ['png', 'jpg', 'jpeg', 'gif'].includes(evidenceMapping.filename.split('.').pop().toLowerCase()) ?
-                        `<img src="${filePath}" style="max-width: 100%; height: auto;" alt="${evidenceMapping.filename}" />` :
-                        `<embed src="${filePath}" type="application/pdf" width="100%" height="600px" />`
+                        `<img src="${originalPath || filePath}" style="max-width: 100%; height: auto;" alt="${evidenceMapping.filename}" />` :
+                        `<embed src="${originalPath || filePath}" type="application/pdf" width="100%" height="600px" />`
             }
                 </div>
             </div>

@@ -532,7 +532,7 @@ async function showSimulationFileWithExplanation(filename) {
 
         // Display in reading mode viewer with sticky header
         readingModeViewer.innerHTML = `
-            <div class="source-info" style="position: sticky; top: 0; background: white; z-index: 1001; padding: 1rem; border-bottom: 1px solid #e1e8ed; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+            <div class="source-info" style="position: sticky; top: 0; background: white; z-index: 1001;"
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div class="source-title">
                         ${filename}
@@ -548,7 +548,7 @@ async function showSimulationFileWithExplanation(filename) {
                     ` : ''}
                 </div>
             </div>
-            <div style="padding: 1rem;">
+            <div style="padding: 0 1rem;">
                 ${contentHtml}
             </div>
         `;
