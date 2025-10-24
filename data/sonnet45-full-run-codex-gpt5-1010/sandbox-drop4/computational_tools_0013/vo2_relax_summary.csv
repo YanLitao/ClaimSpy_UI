@@ -1,5 +1,0 @@
-v_index,bond_length_min_A,bond_length_max_A,bond_length_mean_A,bond_length_std_A,bond_length_range_A,angle_min_deg,angle_max_deg,angle_mean_deg,angle_std_deg,angle_max_dev_from_90_180_deg,distorted
-0,1.7126,3.6330,2.2635,0.6338,1.9204,42.99,171.36,96.34,36.06,47.01,True
-1,1.7126,3.6330,2.2635,0.6338,1.9204,42.99,171.36,96.34,36.06,47.01,True
-2,1.7796,3.7527,2.2725,0.6713,1.9731,42.89,179.84,100.53,34.65,47.11,True
-3,1.7796,3.7527,2.2725,0.6713,1.9731,42.89,179.84,100.53,34.65,47.11,True

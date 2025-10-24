@@ -1,0 +1,23 @@
+{
+  "evidence_to_trajectory": {
+    "E_claim": [
+      -1
+    ],
+    "E_card": [
+      -1
+    ],
+    "E_calphad": [
+      0
+    ]
+  },
+  "step_dependencies": {
+    "0": {
+      "depends_on_step": -1,
+      "result_index": null
+    },
+    "1": {
+      "depends_on_step": 0,
+      "result_index": null
+    }
+  }
+}

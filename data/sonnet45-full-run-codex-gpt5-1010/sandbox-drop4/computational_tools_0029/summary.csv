@@ -1,4 +1,0 @@
-label,n_atoms,n_fu,Co_frac_Fe_sublattice,muB_total_abs,muB_per_fu,emu_per_g,energy_eV,fmax_after,steps,magmom_source
-Fe2O3_undoped,10,2.00,0.0000,20.0000,10.0000,3.4974e+02,-30.865068,0.0000,0,spin_only
-Fe2O3_Co_x0p0417,60,12.00,0.0417,119.0000,9.9167,3.4627e+02,-184.539042,0.0000,0,spin_only
-Fe2O3_Co_x0p0833,60,12.00,0.0833,118.0000,9.8333,3.4281e+02,-183.887644,0.0000,0,spin_only

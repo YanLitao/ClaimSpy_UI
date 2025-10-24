@@ -1,0 +1,61 @@
+{
+    "mappings": {
+        "ev_baseline_kic": {
+            "original_url": "https://cdn.thomasnet.com/ccp/01209146/111318.pdf",
+            "local_path": "/evidences/ev_baseline_kic.pdf",
+            "filename": "ev_baseline_kic.pdf",
+            "citation": "FRACTURE TOUGHNESS KIC 15.9 MPa m^1/2; TYPICAL TENSILE PROPERTIES: 0.2% Proof stress 180 MPa, Tensile strength 250 MPa, Elongation 7%; TYPICAL COMPRESSIVE PROPERTIES: 0.2% Proof stress 187 MPa, Ultimate strength 323 MPa",
+            "highlights": [
+                {
+                    "page": 3,
+                    "text": "TYPICAL TENSILE PROPERTIES  0.2% Proof stress   180 MPa Tensile strength   250 MPa Elongation   7%  TYPICAL COMPRESSIVE PROPERTIES  0.2% Proof stress   187 MPa Ultimate strength   323 MPa  TYPICAL SHEAR PROPERTIES  Ultimate stress   162 MPa  FRACTURE TOUGHNESS  K   I C   15.9 MPa m 1/ 2",
+                    "color": "yellow"
+                }
+            ]
+        },
+        "ev_we43_properties": {
+            "original_url": "https://link.springer.com/article/10.1007/s12598-020-01423-3",
+            "local_path": "/evidences/ev_we43_properties.pdf",
+            "filename": "ev_we43_properties.pdf",
+            "citation": "The tensile strength is up to 290 MPa, the yield strength reaches 209 MPa, and the elongation is slightly improved. The microstructures, mechanical properties and fracture behaviors of a new WE43 alloy (Mg\u20134Y\u20131.6Nd\u20132Sm\u20130.5Zr) were investigated.",
+            "highlights": [
+                {
+                    "page": 1,
+                    "text": "The tensile strength is up to 290 MPa, the yield strength reaches 209 MPa, and the elongation is slightly improved.",
+                    "color": "yellow"
+                },
+                {
+                    "page": 1,
+                    "text": "The microstructures, mechanical properties and fracture behaviors of a new WE43 alloy (Mg–4Y–1.6Nd– 2Sm–0.5Zr) were investigated.",
+                    "color": "yellow"
+                }
+            ]
+        },
+        "ev_oxygen_embrittlement": {
+            "original_url": "https://www.nature.com/articles/s41467-023-36030-0",
+            "local_path": "/evidences/ev_oxygen_embrittlement.pdf",
+            "filename": "ev_oxygen_embrittlement.pdf",
+            "citation": "Oxygen has long been considered as a detrimental impurity in pure titanium since it can severely deteriorate the ductility.",
+            "highlights": [
+                {
+                    "page": 1,
+                    "text": "Interstitial oxygen has long been considered as a double-edged sword in pure titanium with a hexagonal close packed (hcp) structure. Oxygen can signi fi cantly increase the strength 1 – 8 , but it can also severely dete- riorate the ductility 4 – 8 , rendering titanium extremely brittle at 77 K when the oxygen content merely exceeds 0.3 wt.%",
+                    "color": "yellow"
+                }
+            ]
+        },
+        "ev_lpbf_oxide": {
+            "original_url": "https://link.springer.com/article/10.1007/s00501-025-01559-8",
+            "local_path": "/evidences/ev_lpbf_oxide.pdf",
+            "filename": "ev_lpbf_oxide.pdf",
+            "citation": "Another important factor, although difficult to measure, is the oxide layer of the powder particles. As the thickness of the layer increases, the reactivity of the powder decreases, but an oxide layer that is too thick makes it more difficult to melt the powder in the LPBF process.",
+            "highlights": [
+                {
+                    "page": 2,
+                    "text": "Another important factor, although dif- ficult to measure, is the oxide layer of the powder particles. As the thickness of the layer increases, the reactivity of the powder decreases, but an oxide layer that is too thick makes it more difficult to melt the powder in the LPBF process.",
+                    "color": "yellow"
+                }
+            ]
+        }
+    }
+}

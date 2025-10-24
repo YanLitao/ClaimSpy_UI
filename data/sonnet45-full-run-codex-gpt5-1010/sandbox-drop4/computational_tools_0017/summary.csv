@@ -1,3 +1,0 @@
-case,natoms,n_fe,n_al,n_o,supercell,dopant_fraction_fe,energy_eV,magmom_total_muB,magmom_per_fu_muB,fmax_after_stage2_eVA,steps_stage1,steps_stage2
-undoped,40,16,0,24,1x1x2,0.000000,-316.816101,0.000006,0.000001,0.038146,150,300
-al_doped,40,15,1,24,1x1x2,0.062500,-316.653194,-4.478233,-0.559779,0.040836,150,300
