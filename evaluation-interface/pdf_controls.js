@@ -226,7 +226,7 @@ async function highlightTextOnPage(pdfViewer, pageNumber, searchText, evidenceId
             }
         });
 
-        console.log('fullText:', fullText);
+        //console.log('fullText:', fullText);
 
         // Find matching text
         const searchIndex = fullText.toLowerCase().indexOf(searchText.toLowerCase());
@@ -517,7 +517,15 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
 
         // The file should be accessible via the API server
         // Use static config for evidence file path
-        const filePath = window.StaticConfig.getEvidenceUrl(problemFolder, evidenceMapping.filename);
+        let filePath = window.StaticConfig.getEvidenceUrl(problemFolder, evidenceMapping.filename);
+
+        // For PDF.js viewer, we need to convert relative paths to absolute paths
+        // since PDF.js viewer runs in an iframe with a different base path
+        if (filePath.startsWith('./')) {
+            // Convert ./static-data/... to ../../static-data/... 
+            // to go back from pdfjs/web/ to the root directory
+            filePath = '../..' + filePath.substring(1);
+        }
 
         // Determine if it's a PDF file for enhanced features
         const isPDF = evidenceMapping.filename.toLowerCase().endsWith('.pdf');
@@ -548,7 +556,7 @@ async function showLocalPDF(evidenceMapping, evidenceId) {
                 </div>
                 <div class="pdf-content" id="pdfContent_${evidenceId}">
                     ${isPDF ?
-                `<iframe src="/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}#page=${highlightPage}&zoom=140" 
+                `<iframe src="./pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}#page=${highlightPage}&zoom=140" 
                         id="pdfFrame_${evidenceId}" 
                         width="100%" 
                         height="600px" 
@@ -835,7 +843,7 @@ function scrollToFirstHighlight(evidenceId) {
 
 // Open PDF in new tab
 function openPDFInNewTab(filePath) {
-    const newTabUrl = `/pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}`;
+    const newTabUrl = `./pdfjs/web/viewer.html?file=${encodeURIComponent(filePath)}`;
     window.open(newTabUrl, '_blank');
 }
 
